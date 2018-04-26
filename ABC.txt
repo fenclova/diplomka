@@ -1,2 +1,2 @@
 Hello, 
-we are testing GIT desktop :)
+goodbye command line!! :)
