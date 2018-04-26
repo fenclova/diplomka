@@ -69,25 +69,20 @@ with open(filename, "wb") as vysledky_file:
         shape = ctverec[1]
         print "\n Pracuji na ctverci: {0}".format(ID)
 
-        try:
-            # Volam funkci linarni interpolace
-            result_predvyber = predvyber.fce_predvyber(ID, shape, config.workspace, config.vstupni_data,
+        # Volam funkci linarni interpolace
+        result_predvyber = predvyber.fce_predvyber(ID, shape, config.workspace, config.vstupni_data,
                                                    FCDataset_VybranyVodniTok)
 
-            print "Funkce vratila vysledek = {0}".format(result_predvyber)
+        print "Funkce vratila vysledek = {0}".format(result_predvyber)
 
-            # zapis vysledek do csv souboru
-            csv_writer.writerow(result_predvyber)
-            vysledky_file.flush()
-            print "Zapsano do csv."
+        # zapis vysledek do csv souboru
+        csv_writer.writerow(result_predvyber)
+        vysledky_file.flush()
+        print "Zapsano do csv."
 
-            # update stav
-            ctverec[2] = "ok"
-            ctverce_cursor.updateRow(ctverec)
-
-        except:
-            print "!!! Funkce NEvratila vysledek."
-            kolik_nevypocteno += 1
+        # update stav
+        ctverec[2] = "ok"
+        ctverce_cursor.updateRow(ctverec)
 
     del ctverce_cursor
 
