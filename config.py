@@ -1,20 +1,22 @@
-# Nazev:    config.py
-# Autor:    Karolina Fenclova
-# Popis:    Konfiguracni soubor pro skripty: fce_linearni_interpolace.py
-import os
+# ....................................................................................................
+# Name:             config.py
+# Author:           Karolina Fenclova
+# Description:      Configuration file for all other scripts
 
-cesta = os.path.dirname(os.path.abspath(__file__))
-ctverce = os.path.join(cesta, r"../te")
+import os
+# path of this file
+path = os.path.dirname(os.path.abspath(__file__))
+
+# the area of interest
+ctverce = os.path.join(path, r"..\data\vstupni_data.gdb\fishnet")
 
 # Databaze k ukladani vysledku
-databaze = r"C:\fenclova\diplomka\analyza\test.sqlite"
+# databaze = r"C:\fenclova\diplomka\analyza\test.sqlite"
 
-# Uzemi, pro ktere pocitam
-ctverce = r"C:\fenclova\diplomka\analyza\data\vstupni_data.gdb\fishnet"
-
-# Pracovni prostredi, zdroje dat
-workspace = r"C:\fenclova\diplomka\analyza\mezivysledky\\"
-vstupni_data = r"C:\fenclova\diplomka\analyza\data\vstupni_data.gdb\\"
+# set the paths
+workspace = r"..\mezivysledky\\"
+ctverce = os.path.join(path, r"..\data\vstupni_data.gdb\fishnet")
+vstupni_data = os.path.join(path, r"..\data\vstupni_data.gdb\\")
 
 # --------------------- fce_linearni_interpolace.py -----------------------------------
 
