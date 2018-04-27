@@ -15,7 +15,7 @@ print "Start 1_hypsometrie.py:"
 import time
 t1 = time.time()
 
-import arcpy, csv, sqlite3, config
+import arcpy, csv, sqlite3, config, sys, os
 
 # import funkce z jineho souboru
 import fce_linearni_interpolace as hypsometrie
@@ -25,63 +25,58 @@ arcpy.env.overwriteOutput = True
 sr = arcpy.SpatialReference(32633)
 
 # Databaze GDB pro ukladani vystupu pro hodnoceni
-if not arcpy.Exists("Outputs.gdb"):
-    outDatabase = str(arcpy.CreateFileGDB_management(out_folder_path= config.workspace, out_name="Outputs", out_version="CURRENT"))
-else:
-    outDatabase = "Outputs.gdb"
+outDatabase = "Outputs.gdb"
+FCDataset_VybranyVodniTok = os.path.join(outDatabase, "VybranyVodniTok")
+FCDataset_HypsoVrstevnice = os.path.join(outDatabase, "HypsoVrstevnice")
 
-if not arcpy.Exists(outDatabase + "VybranyVodniTok"):
-    FCDataset_VybranyVodniTok = str(arcpy.CreateFeatureDataset_management(outDatabase, "VybranyVodniTok", sr))
-else:
-    FCDataset_VybranyVodniTok = "VybranyVodniTok"
+# Pripoj k databazi, vytvor cursor
+conn = sqlite3.connect(config.databaze)
+print "Pripojeno k databazi."
+cur = conn.cursor()
 
-if not arcpy.Exists(outDatabase + "HypsoVrstevnice"):
-    FCDataset_HypsoVrstevnice = str(arcpy.CreateFeatureDataset_management(outDatabase, "HypsoVrstevnice", sr))
-else:
-    FCDataset_HypsoVrstevnice = "HypsoVrstevnice"
+# Vypocet pro vsechna uzemi
+# TODO dodelat atribut hypso = pocitat (ty ctverce, ktere chci)
+where = "stav_hypsometrie= 'nevypocteno'"
+ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
 
-try:
-    # Pripoj k databazi, vytvor cursor
-    conn = sqlite3.connect(config.databaze)
-    print "Pripojeno k databazi."
-    cur = conn.cursor()
+for ctverec in ctverce_cursor:
+    ID = ctverec[0]
+    shape = ctverec[1]
+    print "\n Pracuji na ctverci: {0}".format(ID)
 
-    # Vypocet pro vsechna uzemi
-    ctverce_cursor = arcpy.da.SearchCursor(config.ctverce, ["Id", "SHAPE@"])
+    # Volam funkci linarni interpolace
+    result_linearni_interpolace = hypsometrie.fce_linearni_interpolace(ID, shape, config.workspace,
+                                                                       config.vstupni_data, FCDataset_VybranyVodniTok,
+                                                                       FCDataset_HypsoVrstevnice)
+    print "Funkce linearni interpolace vratila vysledek."
 
-    for ctverec in ctverce_cursor:
-        ID = ctverec[0]
-        shape = ctverec[1]
-        print "\n Pracuji na ctverci: {0}".format(ID)
+    ZIV5 = result_linearni_interpolace[0]
+    ZIV10 = result_linearni_interpolace[1]
+    ZIV20 = result_linearni_interpolace[2]
 
-        # Volam funkci linarni interpolace
-        result_linearni_interpolace = hypsometrie.fce_linearni_interpolace(ID, shape, config.workspace, config.vstupni_data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice)
-        print "Funkce linearni interpolace vratila vysledek."
+    # Pridani vysledku do databaze, ulozeni
+    cur.execute("INSERT INTO hypsometrie_ZIV5 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ZIV5)
+    cur.execute("INSERT INTO hypsometrie_ZIV10 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ZIV10)
+    cur.execute("INSERT INTO hypsometrie_ZIV20 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ZIV20)
+    conn.commit()
+    print "Hodnoty pridany do databaze."
 
-        ZIV5 = result_linearni_interpolace[0]
-        ZIV10 = result_linearni_interpolace[1]
-        ZIV20 = result_linearni_interpolace[2]
+    # update stav
+    ctverec[2] = "vypocteno"
+    ctverce_cursor.updateRow(ctverec)
 
-        # Pridani vysledku do databaze, ulozeni
-        cur.execute("INSERT INTO hypsometrie_ZIV5 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ZIV5)
-        cur.execute("INSERT INTO hypsometrie_ZIV10 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ZIV10)
-        cur.execute("INSERT INTO hypsometrie_ZIV20 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ZIV20)
-        conn.commit()
-        print "Hodnoty pridany do databaze."
+del ctverce_cursor
 
-    del ctverce_cursor
+# Ukonci pripojeni k databazi
+conn.close()
 
-    # Ukonci pripojeni k databazi
-    conn.close()
+# Vysledny cas vypoctu
+t2 = time.time()
+TimeTakenSecs = str(t2 - t1)
+print ("cas vypoctu: " + TimeTakenSecs + "sekund")
 
-    # Vysledny cas vypoctu
-    t2 = time.time()
-    TimeTakenSecs = str(t2 - t1)
-    print ("cas vypoctu: " + TimeTakenSecs + "sekund")
+print 'Konec 1_hypsometrie.py'
 
-    print 'Konec 1_hypsometrie.py'
-
-except ValueError:
-    print "Ooups... neco se nepovedlo"
-    print arcpy.GetMessages(2)
-
+sys.exit(777)
