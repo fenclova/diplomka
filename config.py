@@ -8,7 +8,7 @@ import os
 path_config = os.path.dirname(os.path.abspath(__file__))
 
 # Databaze k ukladani vysledku
-# databaze = r"C:\fenclova\diplomka\analyza\test.sqlite"
+databaze = r"C:\fenclova\diplomka\analyza\DP_databaze.sqlite"
 
 # set the paths
 workspace = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')

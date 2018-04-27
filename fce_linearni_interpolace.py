@@ -140,16 +140,28 @@ def fce_linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniT
     print "pocitam rozsah pro centralni body mrizky..."
     zonal_min = arcpy.gp.ZonalStatistics_sa(mrizka, "FID", dmt, "dmt_min", "MINIMUM", "DATA")
     zonal_max = arcpy.gp.ZonalStatistics_sa(mrizka, "FID", dmt, "dmt_max", "MAXIMUM", "DATA")
-    zonal_vypocet = (arcpy.sa.CellStatistics([zonal_min, zonal_max], "SUM", "DATA")) / 2
-# !!!!! potreba zaokrouhlit MIN a MAX pred prumerovanm (zaokrouhlit pred i po prumerovani)
 
     # Centroidy mrizky a jejich vyska
     centroidy = "mrizka_1km_label.shp"
-    centroidy_vyska = arcpy.sa.ExtractValuesToPoints(centroidy, zonal_vypocet, "centroidy_vyska.shp", "NONE", "VALUE_ONLY")
+    centroidy_min = arcpy.sa.ExtractValuesToPoints(centroidy, zonal_min, "centroidy_min.shp", "NONE", "VALUE_ONLY")
 
-    # Zaokrouhli vysku
+    # Zaokrouhli vysku a vymaz pole RASTERVALU
+    arcpy.AddField_management(centroidy_min, "VYSKA_MIN", "DOUBLE")
+    arcpy.CalculateField_management(centroidy_min, "VYSKA_MIN", "round( !RASTERVALU! , 0)", "PYTHON")
+    arcpy.DeleteField_management(centroidy_min, "RASTERVALU")
+
+    # MAX vyska (v poli RASTERVALU)
+    centroidy_vyska = arcpy.sa.ExtractValuesToPoints(centroidy_min, zonal_max, "centroidy_vyska.shp", "NONE",
+                                                     "VALUE_ONLY")
+
+    # Zaokrouhli vysku a vymaz pole RASTERVALU
+    arcpy.AddField_management(centroidy_vyska, "VYSKA_MAX", "DOUBLE")
+    arcpy.CalculateField_management(centroidy_vyska, "VYSKA_MAX", "round( !RASTERVALU! , 0)", "PYTHON")
+    arcpy.DeleteField_management(centroidy_vyska, "RASTERVALU")
+
+    # Spocti hodnotu centroidu
     arcpy.AddField_management(centroidy_vyska, "VYSKA", "DOUBLE")
-    arcpy.CalculateField_management(centroidy_vyska, "VYSKA", "round( !RASTERVALU! , 0)", "PYTHON")
+    arcpy.CalculateField_management(centroidy_vyska, "VYSKA", "round(((!VYSKA_MIN! + !VYSKA_MAX!)/2) , 0)", "PYTHON")
 
     # ....................................................................................................
     # TVORBA UHLOPRICEK
@@ -207,208 +219,9 @@ def fce_linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniT
     input = "mrizka_linie.shp;uhlopricky.shp"
     mrizka_uhlopricky = arcpy.Merge_management(input, "mrizka_uhlopricky.shp", "")
 
-    # # ....................................................................................................
-    # # VYBER 1 VODNI TOK, KTERY PROTINA CELE UZEMI A DELI HO NA 2 PRIBLIZNE SHODNE CASTI
-    #
-    # print "vybiram 1 vodni tok..."
-    #
-    # buffer_vodni_toky = arcpy.Buffer_analysis(vodni_toky_clip, "buffer_vodni_toky.shp", config.buffer_vodni_toky,
-    #                                           "FULL",
-    #                                           "ROUND", "ALL")
-    # buffer_vodni_plochy = arcpy.Buffer_analysis(vodni_plocha_clip, "buffer_vodni_plochy.shp",
-    #                                             config.buffer_vodni_plochy, "FULL",
-    #                                             "ROUND", "ALL")
-    #
-    # # Spoj obalove zony reky a vodni plochy
-    # inMerge = "buffer_vodni_toky.shp;buffer_vodni_plochy.shp"
-    # buffer_voda = arcpy.Merge_management(inMerge, "buffer_voda.shp", "")
-    # buffer_voda_dissolve = arcpy.Dissolve_management(buffer_voda, "buffer_voda_dissolve.shp", "", "", "SINGLE_PART",
-    #                                                  "DISSOLVE_LINES")
-    #
-    # # DIBAVOD (A02 vodni toky jemne useky) pro zajmovou oblast (ctverec)
-    # print "orezavam DIBAVOD..."
-    # dibA02 = data + "dibavod_VodniTokyA02"
-    # dibA02_clip = arcpy.Clip_analysis(dibA02, shape, "dibA02_clip.shp", "")
-    #
-    # # VYBER a VYMAZ useky DIBAVOD, pokud linie nelezi uvnitr obalove zony
-    # print "vybiram data DIBAVOD within Buffer vody..."
-    # inFeatures = dibA02_clip
-    # tempLayer = "dibA02_clip.lyr"
-    # selectFeatures = buffer_voda
-    # arcpy.MakeFeatureLayer_management(inFeatures, tempLayer)
-    # arcpy.SelectLayerByLocation_management(tempLayer, "WITHIN", selectFeatures, selection_type="NEW_SELECTION",
-    #                                        invert_spatial_relationship="INVERT")
-    # arcpy.DeleteFeatures_management(tempLayer)
-    #
-    # # ....................................................................................................
-    # print "creating database, dataset, network..."
-    # # Create database
-    # if not arcpy.Exists("RiverNetwork.gdb"): RiverDatabase = arcpy.CreateFileGDB_management(out_folder_path=workspace, out_name="RiverNetwork", out_version="CURRENT")
-    # else: RiverDatabase = "RiverNetwork.gdb"
-    #
-    # # Create feature dataset
-    # arcpy.Delete_management(os.path.join(RiverDatabase, "NetworkDataset"))
-    # NetworkDataset = arcpy.CreateFeatureDataset_management(RiverDatabase, "NetworkDataset", sr)
-    #
-    # # Save selected DIBAVOD to Feature dataset
-    # edges = arcpy.FeatureClassToFeatureClass_conversion(dibA02_clip, NetworkDataset, "edges")
-    #
-    # # Create geometric network
-    # network = arcpy.CreateGeometricNetwork_management(NetworkDataset, "network", "edges SIMPLE_EDGE NO",
-    #                                                   preserve_enabled_values="PRESERVE_ENABLED")
-    #
-    # # ....................................................................................................
-    # # SELECT START AND ENDPOINTS
-    # # create polygon boundary
-    # obrys = arcpy.PolygonToLine_management(shape, "obrys")
-    #
-    # # create start points
-    # print "creating start points..."
-    # start_points = arcpy.FeatureVerticesToPoints_management(edges, "start_points", "START")
-    #
-    # tempLayer = "start_points.lyr"
-    # arcpy.MakeFeatureLayer_management(start_points, tempLayer)
-    #
-    # # select and delete all start points not closer than tolerance from polygon boundary
-    # arcpy.SelectLayerByLocation_management(tempLayer, "INTERSECT", obrys, "", "NEW_SELECTION", "INVERT")
-    # arcpy.DeleteFeatures_management(tempLayer)
-    #
-    # # create end points
-    # print "creating end points..."
-    # end_points = arcpy.FeatureVerticesToPoints_management(edges, "end_points", "END")
-    #
-    # tempLayer = "end_points.lyr"
-    # arcpy.MakeFeatureLayer_management(end_points, tempLayer)
-    #
-    # # select and delete all end points not closer than tolerance from polygon boundary
-    # #arcpy.SelectLayerByLocation_management(tempLayer, "WITHIN_A_DISTANCE", obrys, config.tolerance_end,
-    # #                                       "NEW_SELECTION", "INVERT")
-    # arcpy.SelectLayerByLocation_management(tempLayer, "INTERSECT", obrys, "", "NEW_SELECTION", "INVERT")
-    # arcpy.DeleteFeatures_management(tempLayer)
-    #
-    # # ....................................................................................................
-    # # create all combination for start and end points
-    # flags = arcpy.CreateFeatureclass_management(NetworkDataset, "flags", "POINT", spatial_reference=sr)
-    #
-    # # local variable for selecting the most appropriate path
-    # deviation = []  # to store deviation from the "ideal" division (== 1.0)
-    # i = 0
-    #
-    # # all end points
-    # with arcpy.da.SearchCursor(end_points, "SHAPE@") as curEnd:
-    #     for e in curEnd:
-    #         inGeomEnd = e[0]
-    #         partEnd = inGeomEnd.getPart(0)
-    #
-    #         # all start points
-    #         curStart = arcpy.da.SearchCursor(start_points, "SHAPE@")
-    #         for s in curStart:
-    #             inGeomStart = s[0]
-    #             partStart = inGeomStart.getPart(0)
-    #             print partEnd, partStart
-    #
-    #             # flags = 2 points
-    #             print "creating flags..."
-    #             arcpy.DeleteFeatures_management(flags)
-    #             insCur = arcpy.da.InsertCursor(flags, "SHAPE@")
-    #             insCur.insertRow(inGeomEnd)
-    #             insCur.insertRow(inGeomStart)
-    #             del insCur
-    #
-    #             # Trace Geometric Network function == selected edges and junctions
-    #             print "finding path..."
-    #             arcpy.TraceGeometricNetwork_management(network, "result_set", flags, "FIND_PATH",
-    #                                                    in_trace_ends="NO_TRACE_ENDS",
-    #                                                    in_trace_indeterminate_flow="NO_TRACE_INDETERMINATE_FLOW")
-    #
-    #             # Create a Mapping Layer out of the Group Layer
-    #             groupLayer = arcpy.mapping.Layer("result_set")
-    #
-    #             # Get a list of all the mappping layers, the first return will be the Group Layer itself
-    #             newLyrs = arcpy.mapping.ListLayers(groupLayer)
-    #
-    #             # EXPORT selected EDGES (dibA02_clip v databazi)
-    #             selected_path = arcpy.CopyFeatures_management(newLyrs[2], "selected_path.shp")
-    #
-    #             # Feature to Polygon
-    #             print "dividing polygons with selected paths..."
-    #
-    #             in_features = "selected_path.shp; obrys.shp"
-    #             dvojice = arcpy.FeatureToPolygon_management(in_features, "FeatureToPolygon.shp", config.tolerance_FeatureToPolygon,
-    #                                                         "NO_ATTRIBUTES", "")
-    #             area = []
-    #
-    #             # spocti plochu pro 2 dily
-    #             with arcpy.da.SearchCursor(dvojice, ['OID@', 'SHAPE@AREA']) as cursor:
-    #                 for row in cursor:
-    #                     area.append(row[1])
-    #                     print('Feature {} has an area of {}'.format(row[0], row[1]))
-    #             del cursor
-    #
-    #             # if a polygon divided into 2 parts
-    #             if len(area) == 2:
-    #                 podil_ploch = max(area) / min(area)
-    #                 print "-- Podil ploch = {}".format(podil_ploch)
-    #                 deviation.append(podil_ploch - 1)
-    #                 print "Deviation = {}".format(podil_ploch - 1)
-    #
-    #                 if i == 0:
-    #                     # first selection of river
-    #                     selected_path_dissolve = arcpy.Dissolve_management(selected_path, "selected_path_dissolve.shp",
-    #                                                                        "", "", "SINGLE_PART", "DISSOLVE_LINES")
-    #                     fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok,
-    #                                                             "vybrany_vodni_tok_{0}".format(ID))
-    #                     arcpy.CopyFeatures_management(selected_path_dissolve,
-    #                                                                       fullPath_VybranyVodniTok)
-    #                     nejlepsi_podil_ploch = podil_ploch
-    #                     print "Prvni vyber vodniho toku."
-    #
-    #                 else:
-    #                     print "Minimum deviation = {}".format(min(deviation))
-    #
-    #                     # select if deviation is smaller
-    #                     if (podil_ploch - 1) <= min(deviation):
-    #                         selected_path_dissolve = arcpy.Dissolve_management(selected_path,
-    #                                                                            "selected_path_dissolve.shp", "", "",
-    #                                                                            "SINGLE_PART", "DISSOLVE_LINES")
-    #                         fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok,
-    #                                                                 "vybrany_vodni_tok_{0}".format(ID))
-    #                         arcpy.CopyFeatures_management(selected_path_dissolve,
-    #                                                                           fullPath_VybranyVodniTok)
-    #                         nejlepsi_podil_ploch = podil_ploch
-    #                         print "Vybrano jako vodni tok."
-    #
-    #                     else:
-    #                         print "Odchylka neni mensi nez doposud minimalni."
-    #
-    #                 i = +1
-    #
-    #             else:
-    #                 print "Nelze vybrat vodni tok a delit plochu."
-    #
-    #         del curStart
-    # del curEnd
-    #
-    # print "Odchylky od 1 u VSECH moznych dvojic ploch = {}".format(deviation)
-    #
-    # try:
-    #     arcpy.Delete_management(buffer_voda)
-    #     arcpy.Delete_management(buffer_vodni_plochy)
-    #     arcpy.Delete_management(buffer_vodni_toky)
-    #     arcpy.Delete_management(buffer_voda_dissolve)
-    #     arcpy.Delete_management(dibA02_clip)
-    #     arcpy.Delete_management(start_points)
-    #     arcpy.Delete_management(end_points)
-    #     arcpy.Delete_management(flags)
-    #     arcpy.Delete_management(obrys)
-    #     arcpy.Delete_management(selected_path)
-    #     arcpy.Delete_management(selected_path_dissolve)
-    #     arcpy.Delete_management(dvojice)
-    #     arcpy.Delete_management(RiverDatabase)
-    # except:
-    #     print "Neco nelze smazat :-)"
-
-    # Existuje vodni tok, ktery deli uzemi na 2 casti
+    # ....................................................................................................
+    # NACTENI VODNIHO TOKU
+    # Existuje-li vodni tok, ktery deli uzemi na 2 casti
     fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok,
                                             "v{0}_vodni_tok".format(ID))
 
@@ -494,13 +307,13 @@ def fce_linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniT
     # TVORBA VRSTEVNIC z TIN
     print "Generuji vrstevnice..."
 
-    fullPath5 = os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv5".format(ID))
+    fullPath5 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv5".format(ID)))
     hypso5 = arcpy.SurfaceContour_3d(tin, fullPath5, "5", "0")
 
-    fullPath10 = os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv10".format(ID))
+    fullPath10 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv10".format(ID)))
     hypso10 = arcpy.SurfaceContour_3d(tin, fullPath10, "10", "0")
 
-    fullPath20 = os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv20".format(ID))
+    fullPath20 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv20".format(ID)))
     hypso20 = arcpy.SurfaceContour_3d(tin, fullPath20, "20", "0")
 
     # Pocet vrstevnic v celem uzemi 4x4 km
@@ -546,7 +359,6 @@ def fce_linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniT
     arcpy.Delete_management(body25_vyska)       # asi ulozit do databaze
     arcpy.Delete_management(zonal_min)
     arcpy.Delete_management(zonal_max)
-    arcpy.Delete_management(zonal_vypocet)
     arcpy.Delete_management(mrizka)
     arcpy.Delete_management(mrizka_linie)
     arcpy.Delete_management(mrizka_uhlopricky)

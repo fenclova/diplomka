@@ -79,7 +79,7 @@ with open(filename, "wb") as vysledky_file:
         print "Zapsano do csv."
 
         # update stav
-        ctverec[2] = "ok"
+        ctverec[2] = "vypocteno"
         ctverce_cursor.updateRow(ctverec)
 
     del ctverce_cursor
