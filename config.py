@@ -5,18 +5,15 @@
 
 import os
 # path of this file
-path = os.path.dirname(os.path.abspath(__file__))
-
-# the area of interest
-ctverce = os.path.join(path, r"..\data\vstupni_data.gdb\fishnet")
+path_config = os.path.dirname(os.path.abspath(__file__))
 
 # Databaze k ukladani vysledku
 # databaze = r"C:\fenclova\diplomka\analyza\test.sqlite"
 
 # set the paths
-workspace = r"..\mezivysledky\\"
-ctverce = os.path.join(path, r"..\data\vstupni_data.gdb\fishnet")
-vstupni_data = os.path.join(path, r"..\data\vstupni_data.gdb\\")
+workspace = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
+ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet')
+vstupni_data = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\\')
 
 # --------------------- fce_linearni_interpolace.py -----------------------------------
 

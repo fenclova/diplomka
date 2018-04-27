@@ -59,10 +59,8 @@ with open(filename, "wb") as vysledky_file:
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
-    # ctverce_cursor = arcpy.da.SearchCursor(config.ctverce, ["Id", "SHAPE@"])
     where = "stav_predvyber = 'nevypocteno'"
     ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_predvyber"], where)
-    kolik_nevypocteno = 0
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -93,6 +91,6 @@ t2 = time.time()
 TimeTakenSecs = str(t2 - t1)
 print ("cas vypoctu: " + TimeTakenSecs + "sekund")
 
-print 'Konec 0_predvyber.py. Pocet nevypoctenych oblasti: {0}'.format(kolik_nevypocteno)
+print "Konec 0_predvyber.py"
 
 sys.exit(777)
