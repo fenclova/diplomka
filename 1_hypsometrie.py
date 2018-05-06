@@ -44,28 +44,32 @@ for ctverec in ctverce_cursor:
     shape = ctverec[1]
     print "\n Pracuji na ctverci: {0}".format(ID)
 
-    # Volam funkci linarni interpolace
-    result_linearni_interpolace = hypsometrie.fce_linearni_interpolace(ID, shape, config.workspace,
-                                                                       config.vstupni_data, FCDataset_VybranyVodniTok,
-                                                                       FCDataset_HypsoVrstevnice)
-    print "Funkce linearni interpolace vratila vysledek."
+    try:
+        # Volam funkci linarni interpolace
+        result_linearni_interpolace = hypsometrie.fce_linearni_interpolace(ID, shape, config.workspace,
+                                                                           config.vstupni_data, FCDataset_VybranyVodniTok,
+                                                                           FCDataset_HypsoVrstevnice)
+        print "Funkce linearni interpolace vratila vysledek."
 
-    ZIV5 = result_linearni_interpolace[0]
-    ZIV10 = result_linearni_interpolace[1]
-    ZIV20 = result_linearni_interpolace[2]
+        ZIV5 = result_linearni_interpolace[0]
+        ZIV10 = result_linearni_interpolace[1]
+        ZIV20 = result_linearni_interpolace[2]
 
-    # Pridani vysledku do databaze, ulozeni
-    cur.execute("INSERT INTO hypsometrie_ZIV5 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ZIV5)
-    cur.execute("INSERT INTO hypsometrie_ZIV10 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                ZIV10)
-    cur.execute("INSERT INTO hypsometrie_ZIV20 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                ZIV20)
-    conn.commit()
-    print "Hodnoty pridany do databaze."
+        # Pridani vysledku do databaze, ulozeni
+        cur.execute("INSERT INTO hypsometrie_ZIV5 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ZIV5)
+        cur.execute("INSERT INTO hypsometrie_ZIV10 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    ZIV10)
+        cur.execute("INSERT INTO hypsometrie_ZIV20 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    ZIV20)
+        conn.commit()
+        print "Hodnoty pridany do databaze."
 
-    # update stav
-    ctverec[2] = "vypocteno"
-    ctverce_cursor.updateRow(ctverec)
+        # update stav
+        ctverec[2] = "vypocteno"
+        ctverce_cursor.updateRow(ctverec)
+
+    except:
+        "Nelze vypocitat."
 
 del ctverce_cursor
 
