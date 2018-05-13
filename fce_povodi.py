@@ -53,16 +53,33 @@ def fce_povodi(ID, shape, workspace, data):
                                            invert_spatial_relationship="INVERT")
     arcpy.DeleteFeatures_management(tempLayer)
 
+    # VYBER a VYMAZ useky DIBAVOD, pokud rad vodniho toku = 0
+    arcpy.SelectLayerByAttribute_management(tempLayer, "NEW_SELECTION", "gravelius = 0")
+    arcpy.CopyFeatures_management(tempLayer, "grav0.shp")
+    arcpy.DeleteFeatures_management(tempLayer)
+
+
     # TODO vymaz useky kratsi nez 2 km > merge dibavod podle tok_id?
     # nejdrive vyberu dibavod data a pak je spojim - hrozi, ze spojeny nebude lezet v obalove zone vodniho toku
+    # !!! pokud start point linie není koncem jine (pocatecni usek)
 
-    # Delka zeleznice
+    # Delka vodnich toku DIBAVOD
     arcpy.AddGeometryAttributes_management(dibA02_clip, "LENGTH", "METERS")
     g = arcpy.Geometry()
     geometryList = arcpy.CopyFeatures_management(dibA02_clip, g)
     dibA02_delka = 0
     for geometry in geometryList:
         dibA02_delka += geometry.length
+
+    # Delka neurcenych vodnich toku
+    arcpy.AddGeometryAttributes_management("grav0.shp", "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management("grav0.shp", g)
+    grav0_delka = 0
+    for geometry in geometryList:
+        grav0_delka += geometry.length
+
+    #
 
     #....................................................................................................
     # OPRAVA SMERU VODNICH TOKU - podle Digitalniho modelu terenu (jen z vrstevnic)
@@ -84,6 +101,7 @@ def fce_povodi(ID, shape, workspace, data):
 
     # VYSLEDEK
     result = [cislo,
-              round(dibA02_delka, 2)]
+              round(dibA02_delka, 2),
+              round(grav0_delka, 2)]
     return result
 # ------------------------------------------------------
