@@ -178,7 +178,7 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     # VYBER a VYMAZ useky DIBAVOD, pokud linie nelezi uvnitr obalove zony
     inFeatures = dibA02_clip
     tempLayer = "dibA02_clip.lyr"
-    selectFeatures = buffer_voda
+    selectFeatures = buffer_voda # TODO kontrola: nemelo tu byt buffer_voda_dissolve?
     arcpy.MakeFeatureLayer_management(inFeatures, tempLayer)
     arcpy.SelectLayerByLocation_management(tempLayer, "WITHIN", selectFeatures, selection_type="NEW_SELECTION",
                                            invert_spatial_relationship="INVERT")
