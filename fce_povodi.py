@@ -21,15 +21,48 @@ def fce_povodi(ID, shape, workspace, data):
     # PRIPRAVA DAT PRO DANE UZEMI
     print "Pripravuji data..."
 
-    # Vrstevnice pro zajmovou oblast
-    vrstevnice_clip = arcpy.Clip_analysis((data + "dmu25_vrstevnice_ziv5m"), shape, "vrstevnice_clip.shp", "")
-    vrstevnice_pocet = int(arcpy.GetCount_management(vrstevnice_clip).getOutput(0))
+    # Vodni plochy pro CTVEREC
+    vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), shape, "vodni_plocha_clip.shp", "")
 
-    # # Vodni plochy pro zajmovou oblast
-    # vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), buffer_ctverec, "vodni_plocha_clip.shp", "")
-    #
-    # # Vodni toky pro zajmovou oblast
-    # vodni_toky_clip = arcpy.Clip_analysis((data + "dmu25_reka_potok"), buffer_ctverec, "vodni_toky_clip.shp", "")
+    # Vodni toky pro CTVEREC
+    vodni_toky_clip = arcpy.Clip_analysis((data + "dmu25_reka_potok"), shape, "vodni_toky_clip.shp", "")
+
+    # Obalova zona okolo dat dmu25 - pro vyber dibavod
+    buffer_vodni_toky = arcpy.Buffer_analysis(vodni_toky_clip, "buffer_vodni_toky.shp", config.buffer_vodni_toky,
+                                              "FULL",
+                                              "ROUND", "ALL")
+    buffer_vodni_plochy = arcpy.Buffer_analysis(vodni_plocha_clip, "buffer_vodni_plochy.shp",
+                                                config.buffer_vodni_plochy, "FULL",
+                                                "ROUND", "ALL")
+
+    # Spoj obalove zony reky a vodni plochy
+    inMerge = "buffer_vodni_toky.shp;buffer_vodni_plochy.shp"
+    buffer_voda = arcpy.Merge_management(inMerge, "buffer_voda.shp", "")
+    buffer_voda_dissolve = arcpy.Dissolve_management(buffer_voda, "buffer_voda_dissolve.shp", "", "", "SINGLE_PART",
+                                                     "DISSOLVE_LINES")
+
+    # DIBAVOD (A02 vodni toky jemne useky) pro zajmovou oblast (ctverec)
+    dibA02_clip = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), shape, "dibA02_clip.shp", "")
+
+    # VYBER a VYMAZ useky DIBAVOD, pokud linie nelezi uvnitr obalove zony
+    inFeatures = dibA02_clip
+    tempLayer = "dibA02_clip.lyr"
+    selectFeatures = buffer_voda_dissolve
+    arcpy.MakeFeatureLayer_management(inFeatures, tempLayer)
+    arcpy.SelectLayerByLocation_management(tempLayer, "WITHIN", selectFeatures, selection_type="NEW_SELECTION",
+                                           invert_spatial_relationship="INVERT")
+    arcpy.DeleteFeatures_management(tempLayer)
+
+    # TODO vymaz useky kratsi nez 2 km > merge dibavod podle tok_id?
+    # nejdrive vyberu dibavod data a pak je spojim - hrozi, ze spojeny nebude lezet v obalove zone vodniho toku
+
+    # Delka zeleznice
+    arcpy.AddGeometryAttributes_management(dibA02_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(dibA02_clip, g)
+    dibA02_delka = 0
+    for geometry in geometryList:
+        dibA02_delka += geometry.length
 
     #....................................................................................................
     # OPRAVA SMERU VODNICH TOKU - podle Digitalniho modelu terenu (jen z vrstevnic)
@@ -47,9 +80,10 @@ def fce_povodi(ID, shape, workspace, data):
 
     # ....................................................................................................
     print "uklizim po sobe..."
-    arcpy.Delete_management(vrstevnice_clip)
+    #arcpy.Delete_management(vrstevnice_clip)
 
-    # VYSLEDEK = list listu
-    result = [cislo, vrstevnice_pocet]
+    # VYSLEDEK
+    result = [cislo,
+              round(dibA02_delka, 2)]
     return result
 # ------------------------------------------------------
