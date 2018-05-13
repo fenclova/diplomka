@@ -61,7 +61,7 @@ def fce_povodi(ID, shape, workspace, data):
 
     # TODO vymaz useky kratsi nez 2 km > merge dibavod podle tok_id?
     # nejdrive vyberu dibavod data a pak je spojim - hrozi, ze spojeny nebude lezet v obalove zone vodniho toku
-    # !!! pokud start point linie není koncem jine (pocatecni usek)
+    # !!! pokud start point linie neni koncem jine (pocatecni usek)
 
     # Delka vodnich toku DIBAVOD
     arcpy.AddGeometryAttributes_management(dibA02_clip, "LENGTH", "METERS")
@@ -79,7 +79,20 @@ def fce_povodi(ID, shape, workspace, data):
     for geometry in geometryList:
         grav0_delka += geometry.length
 
-    #
+    # SPOJENI podle radu toku
+    dibA02_clip_dissolve = arcpy.Dissolve_management(dibA02_clip, "dibA02_clip_dissolve.shp",
+                                                         dissolve_field="gravelius",
+                                                         statistics_fields="LENGTH SUM",
+                                                         multi_part="MULTI_PART",
+                                                         unsplit_lines="DISSOLVE_LINES")
+
+    # pro kazdy rad urci delku linii
+    rad_cursor = arcpy.da.SearchCursor(dibA02_clip_dissolve, ["gravelius", "SUM_LENGTH"])
+
+    for radek in rad_cursor:
+        rad_toku = radek[0]
+        delka = radek[1]
+        print "Rad: {0}, Delka: {1}".format(rad_toku, delka)
 
     #....................................................................................................
     # OPRAVA SMERU VODNICH TOKU - podle Digitalniho modelu terenu (jen z vrstevnic)
