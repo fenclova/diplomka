@@ -19,7 +19,6 @@ def fce_povodi(ID, shape, workspace, data):
 
     # ....................................................................................................
     # PRIPRAVA DAT PRO DANE UZEMI
-    print "Pripravuji data..."
 
     # Vodni plochy pro CTVEREC
     vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), shape, "vodni_plocha_clip.shp", "")
@@ -53,10 +52,10 @@ def fce_povodi(ID, shape, workspace, data):
                                            invert_spatial_relationship="INVERT")
     arcpy.DeleteFeatures_management(tempLayer)
 
-    # VYBER a VYMAZ useky DIBAVOD, pokud rad vodniho toku = 0
-    arcpy.SelectLayerByAttribute_management(tempLayer, "NEW_SELECTION", "gravelius = 0")
-    arcpy.CopyFeatures_management(tempLayer, "grav0.shp")
-    arcpy.DeleteFeatures_management(tempLayer)
+    # # VYBER a VYMAZ useky DIBAVOD, pokud rad vodniho toku = 0
+    # arcpy.SelectLayerByAttribute_management(tempLayer, "NEW_SELECTION", "gravelius = 0")
+    # arcpy.CopyFeatures_management(tempLayer, "grav0.shp")
+    # arcpy.DeleteFeatures_management(tempLayer)
 
 
     # TODO vymaz useky kratsi nez 2 km > merge dibavod podle tok_id?
@@ -71,14 +70,6 @@ def fce_povodi(ID, shape, workspace, data):
     for geometry in geometryList:
         dibA02_delka += geometry.length
 
-    # Delka neurcenych vodnich toku
-    arcpy.AddGeometryAttributes_management("grav0.shp", "LENGTH", "METERS")
-    g = arcpy.Geometry()
-    geometryList = arcpy.CopyFeatures_management("grav0.shp", g)
-    grav0_delka = 0
-    for geometry in geometryList:
-        grav0_delka += geometry.length
-
     # SPOJENI podle radu toku
     dibA02_clip_dissolve = arcpy.Dissolve_management(dibA02_clip, "dibA02_clip_dissolve.shp",
                                                          dissolve_field="gravelius",
@@ -89,10 +80,10 @@ def fce_povodi(ID, shape, workspace, data):
     # pro kazdy rad urci delku linii
     rad_cursor = arcpy.da.SearchCursor(dibA02_clip_dissolve, ["gravelius", "SUM_LENGTH"])
 
+    rady_delka = {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0, '10': 0}
+
     for radek in rad_cursor:
-        rad_toku = radek[0]
-        delka = radek[1]
-        print "Rad: {0}, Delka: {1}".format(rad_toku, delka)
+        rady_delka[str(radek[0])] = round(radek[1], 2)
 
     #....................................................................................................
     # OPRAVA SMERU VODNICH TOKU - podle Digitalniho modelu terenu (jen z vrstevnic)
@@ -109,12 +100,29 @@ def fce_povodi(ID, shape, workspace, data):
 
 
     # ....................................................................................................
-    print "uklizim po sobe..."
-    #arcpy.Delete_management(vrstevnice_clip)
+    arcpy.Delete_management(vodni_plocha_clip)
+    arcpy.Delete_management(vodni_toky_clip)
+    arcpy.Delete_management(buffer_vodni_toky)
+    arcpy.Delete_management(buffer_vodni_plochy)
+    arcpy.Delete_management(buffer_voda)
+    arcpy.Delete_management(buffer_voda_dissolve)
+    arcpy.Delete_management(dibA02_clip)
+    arcpy.Delete_management(dibA02_clip_dissolve)
+    #arcpy.Delete_management()
 
     # VYSLEDEK
     result = [cislo,
               round(dibA02_delka, 2),
-              round(grav0_delka, 2)]
+              rady_delka['0'],
+              rady_delka['1'],
+              rady_delka['2'],
+              rady_delka['3'],
+              rady_delka['4'],
+              rady_delka['5'],
+              rady_delka['6'],
+              rady_delka['7'],
+              rady_delka['8'],
+              rady_delka['9'],
+              rady_delka['10']]
     return result
 # ------------------------------------------------------

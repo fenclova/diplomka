@@ -35,63 +35,62 @@ sr = arcpy.SpatialReference(32633)
 #     FCDataset_VybranyVodniTok = os.path.join(outDatabase, "VybranyVodniTok")
 
 ##################
-# yapis vysledku do csv souboru
-# # TODO atributy pro zapis do cvs
-# fieldnames = ["ID", "vrtevnice_pocet"]
-#
-# # Open csv file for writing the results
-# cislo = 1
-# while True:
-#     filename = config.workspace + "Vrstevnice_vysledky%s.csv" % cislo
-#     if not os.path.isfile(filename):
-#         break
-#     cislo = cislo +1
-#
-# with open(filename, "wb") as vysledky_file:
-#     csv_writer = csv.writer(vysledky_file)
-#     csv_writer.writerow(fieldnames)
-#
-#     # Vypocet pro vsechna uzemi
-#     # TODO zmenit na stav povodi - doplnit atribut
-#     where = "stav_predvyber = 'nevypocteno'"
-#     ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"]) #, "stav_predvyber"], where)
-#
-#     for ctverec in ctverce_cursor:
-#         ID = ctverec[0]
-#         shape = ctverec[1]
-#         print "\n Pracuji na ctverci: {0}".format(ID)
-#
-#         # Volam funkci linarni interpolace
-#         result = povodi.fce_povodi(ID, shape, config.workspace, config.vstupni_data) #FCDataset_VybranyVodniTok)
-#
-#         print "Vysledek = {0}".format(result)
-#
-#         # zapis vysledek do csv souboru
-#         csv_writer.writerow(result)
-#         vysledky_file.flush()
-#         print "Zapsano do csv."
-#
-#         # update stav
-#         # ctverec[2] = "vypocteno"
-#         # ctverce_cursor.updateRow(ctverec)
-#
-#     del ctverce_cursor
-#
-# vysledky_file.close()
+# zapis vysledku do csv souboru
+# TODO atributy pro zapis do cvs
+fieldnames = ["ID", "celkova_delka", "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"]
+
+# Open csv file for writing the results
+cislo = 1
+while True:
+    filename = config.workspace + "delka_vodnich_toku%s.csv" % cislo
+    if not os.path.isfile(filename):
+        break
+    cislo = cislo +1
+
+with open(filename, "wb") as vysledky_file:
+    csv_writer = csv.writer(vysledky_file)
+    csv_writer.writerow(fieldnames)
+
+    # Vypocet pro vsechna uzemi
+    # TODO zmenit na stav povodi - doplnit atribut
+    where = "stav_predvyber = 'nevypocteno'"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"]) #, "stav_predvyber"], where)
+
+    for ctverec in ctverce_cursor:
+        ID = ctverec[0]
+        shape = ctverec[1]
+        print "\n ID: {0}".format(ID)
+
+        # Volam funkci linarni interpolace
+        result = povodi.fce_povodi(ID, shape, config.workspace, config.vstupni_data) #FCDataset_VybranyVodniTok)
+
+        print "Vysledek = {0}".format(result)
+
+        # zapis vysledek do csv souboru
+        csv_writer.writerow(result)
+        vysledky_file.flush()
+
+        # update stav
+        # ctverec[2] = "vypocteno"
+        # ctverce_cursor.updateRow(ctverec)
+
+    del ctverce_cursor
+
+vysledky_file.close()
 
 #########################
-# pokusy na obrazovku:
-ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"])
-
-for ctverec in ctverce_cursor:
-    ID = ctverec[0]
-    shape = ctverec[1]
-    print "\n Pracuji na ctverci: {0}".format(ID)
-
-    # Volam funkci linarni interpolace
-    result_povodi = povodi.fce_povodi(ID, shape, config.workspace, config.vstupni_data) #FCDataset_VybranyVodniTok)
-
-    print "Funkce vratila vysledek = {0}".format(result_povodi)
+# # pokusy na obrazovku:
+# ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"])
+#
+# for ctverec in ctverce_cursor:
+#     ID = ctverec[0]
+#     shape = ctverec[1]
+#     print "\n Pracuji na ctverci: {0}".format(ID)
+#
+#     # Volam funkci linarni interpolace
+#     result_povodi = povodi.fce_povodi(ID, shape, config.workspace, config.vstupni_data) #FCDataset_VybranyVodniTok)
+#
+#     print "Funkce vratila vysledek = {0}".format(result_povodi)
 #######################
 
 # Vysledny cas vypoctu
