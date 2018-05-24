@@ -1,9 +1,10 @@
 # Nazev:     1_hypsometrie.py
 # Autor:    Karolina Fenclova
 # Popis:    Skript na vytvoreni vrstevnic linearni interpolaci pro mapu hypsometrie
-#           1. priprava vstupnich dat, 2. vyber vodniho toku, 3. tvorba vrstevnic linearni interpolaci
+#           1. priprava vstupnich dat, 2. tvorba vrstevnic linearni interpolaci
 #
-# Vstup:    !!!!! popsat vstupni data
+# Vstup:    soubor config = nastaveni workspace + dat ke zpracovani
+
 #
 # Vystup pro kazde uzemi: vybrany_vodni_tok, ZIV5_hypso, ZIV10_hypso, ZIV20_hypso
 #                         zapis vyslednych hodnot do databaze
@@ -18,7 +19,7 @@ t1 = time.time()
 import arcpy, csv, sqlite3, config, sys, os
 
 # import funkce z jineho souboru
-import fce_linearni_interpolace as hypsometrie
+import fce_hypsometrie as hypsometrie
 
 arcpy.env.workspace = config.workspace
 arcpy.env.overwriteOutput = True
@@ -42,14 +43,14 @@ ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hy
 for ctverec in ctverce_cursor:
     ID = ctverec[0]
     shape = ctverec[1]
-    print "\n Pracuji na ctverci: {0}".format(ID)
+    print "\n ID: {0}".format(ID)
 
     try:
         # Volam funkci linarni interpolace
         result_linearni_interpolace = hypsometrie.fce_linearni_interpolace(ID, shape, config.workspace,
                                                                            config.vstupni_data, FCDataset_VybranyVodniTok,
                                                                            FCDataset_HypsoVrstevnice)
-        print "Funkce linearni interpolace vratila vysledek."
+        print "mam vysledek."
 
         ZIV5 = result_linearni_interpolace[0]
         ZIV10 = result_linearni_interpolace[1]
