@@ -157,9 +157,10 @@ def tvorba_povodi(ID, shape, workspace, data):
     buffer_voda = arcpy.Merge_management(inMerge, "buffer_voda.shp", "")
     buffer_voda_dissolve = arcpy.Dissolve_management(buffer_voda, "buffer_voda_dissolve.shp", "", "", "SINGLE_PART",
                                                      "DISSOLVE_LINES")
+    buffer_voda = arcpy.Clip_analysis(buffer_voda_dissolve, buffer_ctverec, "buffer_voda.shp")
 
     # Vodni toky DIBAVOD orizunute podle obalove zony DMU25
-    reky = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), buffer_voda_dissolve, "reky_clip.shp", "")
+    reky = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), buffer_voda, "reky_clip.shp", "")
 
     # model reliefu pro zajmovou oblast
     inContours = "vrstevnice_clip.shp VYSKA Contour"
@@ -169,7 +170,7 @@ def tvorba_povodi(ID, shape, workspace, data):
     ext_pro_dmt = arcpy.Describe(buffer_ctverec)
     extent = (str(ext_pro_dmt.extent.XMin) + " " + str(ext_pro_dmt.extent.YMin) + " " + str(
             ext_pro_dmt.extent.XMax) + " " + str(ext_pro_dmt.extent.YMax))
-    arcpy.env.extent = extent
+    #arcpy.env.extent = extent
     dmt = arcpy.TopoToRaster_3d(inFeatures, outFeature, config.dmt_resolution, extent)
 
     #......................................................
@@ -196,12 +197,14 @@ def tvorba_povodi(ID, shape, workspace, data):
     for geometry in geometryList:
         reky_delka += geometry.length
 
+    print "delka reky: {} m".format(reky_delka)
+
     # ZKRAT LINII O POSLEDNI USEK - pro tvorbu end pointu
     # (muzu zkratit vsechny = pocitam s buffer zonou)
     reky_dissolve_zkracene = "reky_dissolve_zkracene.shp"
     arcpy.CopyFeatures_management(reky_dissolve, reky_dissolve_zkracene)
 
-    with arcpy.da.UpdateCursor(reky_dissolve_zkracene,["shape@","OID@"]) as cursor:
+    with arcpy.da.UpdateCursor(reky_dissolve_zkracene, ["shape@", "OID@"]) as cursor:
         for row in cursor:
             geom = row[0]
             oid = row[1]
@@ -218,93 +221,128 @@ def tvorba_povodi(ID, shape, workspace, data):
                 cursor.updateRow(row)
 
     # end pointy po zkraceni linie vodniho toku
+    arcpy.Delete_management("end_point.shp")
     end_point = arcpy.FeatureVerticesToPoints_management(reky_dissolve_zkracene, "end_point.shp", "END")
 
-    # .........................................
-    # TVORBA POVODI
-    print "povodi.."
+    # Existuje nejaky zaverovy profil
+    if (reky_delka != 0):
 
-    # FILL DMR = vyplneni prohlubni
-    outFill = Fill(dmt)
+        # TVORBA POVODI
+        print "povodi.."
 
-    # FLOW direction = smer odtoku
-    outFlowDirection = FlowDirection(outFill, "NORMAL")
+        # FILL DMR = vyplneni prohlubni
+        outFill = Fill(dmt)
+        outFill.save("fill.tif")
 
-    # FLOW accumulation = odtok
-    outFlowAccumulation = FlowAccumulation(outFlowDirection)
+        # FLOW direction = smer odtoku
+        outFlowDirection = FlowDirection(outFill, "NORMAL")
+        outFlowDirection.save("flowDirection.tif")
 
-    # SNAP pour point = tvorba rastru z end pointu a prichyceni bodu na misto nejvetsi akumulace vody
-    outSnapPour = SnapPourPoint(end_point, outFlowAccumulation, 5, "ORIG_FID")
+        # FLOW accumulation = odtok
+        outFlowAccumulation = FlowAccumulation(outFlowDirection)
+        outFlowAccumulation.save("flowAccum.tif")
 
-    # WaterShed = vytvor povodi RASTR
-    outWatershed = Watershed(outFlowDirection, outSnapPour)
-    povodi_polygon = arcpy.RasterToPolygon_conversion(outWatershed, "povodi_polygon.shp", "NO_SIMPLIFY", "VALUE")
+        # SNAP pour point = tvorba rastru z end pointu a prichyceni bodu na misto nejvetsi akumulace vody
+        outSnapPour = SnapPourPoint(end_point, outFlowAccumulation, 5, "ORIG_FID")
+        outSnapPour.save("snap.tif")
 
-    # orizni povodi podle ctverce
-    povodi_clip = arcpy.Clip_analysis(povodi_polygon, shape, "povodi_clip.shp", "")
+        # WaterShed = vytvor povodi RASTR > polygon
+        outWatershed = Watershed(outFlowDirection, outSnapPour)
+        povodi_polygon = arcpy.RasterToPolygon_conversion(outWatershed, "povodi_polygon.shp", "NO_SIMPLIFY", "VALUE")
 
-    # ze ctverce vymaz povodi a zbytek rozdel do single polygonu
-    okoli = arcpy.Erase_analysis(shape, povodi_clip, "okoli.shp", "")
-    okoli_single = arcpy.MultipartToSinglepart_management(okoli, "okoli_single.shp")
+        # orizni povodi podle ctverce
+        povodi_clip = arcpy.Clip_analysis(povodi_polygon, shape, "povodi_clip.shp", "")
 
-    # spoj povodi a okoli (= misto, kde se nevytvorilo povodi funkci watershed)
-    povodi_merge = arcpy.Merge_management([povodi_clip, okoli_single], "povodi_okoli_merge.shp")
-    arcpy.AddGeometryAttributes_management(povodi_merge, "AREA", Area_Unit = "SQUARE_METERS")
+        # ZAKLADNI POVODI - BASIN
+        outBasin = Basin(outFlowDirection)
+        outBasin.save("basin.tif")
 
-    # ELIMINUJ povodi mensi 250*250 m (1cm2 v mape 1 : 25 000)
-    povodi_final = "povodi_final.shp"
-    arcpy.CopyFeatures_management(povodi_merge, povodi_final)
+        # Basin to polygon
+        basin_polygon = arcpy.RasterToPolygon_conversion(outBasin, "basin_polygon.shp", "NO_SIMPLIFY", "VALUE")
+        basin_clip = arcpy.Clip_analysis(basin_polygon, shape, "basin_clip.shp")
 
-    inFeatures = povodi_final
-    tempLayer = "povodi_final.lyr"
-    arcpy.MakeFeatureLayer_management(inFeatures, tempLayer)
-    where = '"POLY_AREA" <= 62500'
-    arcpy.SelectLayerByAttribute_management(tempLayer, "NEW_SELECTION", where)
-    arcpy.DeleteFeatures_management(tempLayer)
+        # ze ctverce vymaz povodi a zbytek rozdel do single polygonu
+        basin = arcpy.Erase_analysis(basin_clip, povodi_clip, "basin.shp", "")
 
-    # Delka rozvodnic
-    print "rozvodnice.."
-    rozvodnice = arcpy.PolygonToLine_management(povodi_final, "rozvodnice.shp", "IGNORE_NEIGHBORS")
-    rozvodnice_dissolve = arcpy.Dissolve_management(rozvodnice, "rozvodnice_dissolve.shp")
+        # spoj povodi a basin (= misto, kde se nevytvorilo povodi funkci watershed)
+        povodi_basin_merge = arcpy.Merge_management([povodi_clip, basin], "povodi_basin_merge.shp")
+        arcpy.AddGeometryAttributes_management(povodi_basin_merge, "AREA", Area_Unit="SQUARE_METERS")
 
-    arcpy.AddGeometryAttributes_management(rozvodnice_dissolve, "LENGTH", "METERS")
-    g = arcpy.Geometry()
-    geometryList = arcpy.CopyFeatures_management(rozvodnice_dissolve, g)
-    rozvodnice_delka = 0
-    for geometry in geometryList:
-        rozvodnice_delka += geometry.length
+        # ELIMINUJ povodi mensi 250*250 m (1cm2 v mape 1 : 25 000)
+        povodi_basin_final = "povodi_basin_final.shp"
+        arcpy.CopyFeatures_management(povodi_basin_merge, povodi_basin_final)
 
-    # pocet polygonu povodi eliminovanych o ty nejmensi
-    pocet_povodi = arcpy.GetCount_management(povodi_final)
+        inFeatures = povodi_basin_final
+        tempLayer = "povodi_basin_final.lyr"
+        arcpy.MakeFeatureLayer_management(inFeatures, tempLayer)
+        where = '"POLY_AREA" <= 62500'
+        arcpy.SelectLayerByAttribute_management(tempLayer, "NEW_SELECTION", where)
+        arcpy.DeleteFeatures_management(tempLayer)
+
+        # pocet polygonu povodi eliminovanych o ty nejmensi
+        pocet_povodi_basin = arcpy.GetCount_management(povodi_basin_final)
+
+        # Delka rozvodnic
+        print "rozvodnice.."
+        rozvodnice = arcpy.PolygonToLine_management(povodi_basin_final, "rozvodnice.shp", "IGNORE_NEIGHBORS")
+        rozvodnice_dissolve = arcpy.Dissolve_management(rozvodnice, "rozvodnice_dissolve.shp")
+
+        arcpy.AddGeometryAttributes_management(rozvodnice_dissolve, "LENGTH", "METERS")
+        g = arcpy.Geometry()
+        geometryList = arcpy.CopyFeatures_management(rozvodnice_dissolve, g)
+        rozvodnice_delka = 0
+        for geometry in geometryList:
+            rozvodnice_delka += geometry.length
+
+        # pocet polygonu povodi eliminovanych o ty nejmensi
+        pocet_povodi = arcpy.GetCount_management(povodi_basin_final)
+
+    else:
+        print "Chybi vodni tok."
+
+        # v okoli neni vodni tok = 0 povodi, 0 delka rozvodnice
+        pocet_povodi = 0
+        rozvodnice_delka = 0
 
     #..................................................
     # uklid:
-    # arcpy.Delete_management(buffer_ctverec)
-    # arcpy.Delete_management(vrstevnice)
-    # arcpy.Delete_management(vodni_plocha_clip)
-    # arcpy.Delete_management(vodni_toky_clip)
-    # arcpy.Delete_management(buffer_vodni_toky)
-    # arcpy.Delete_management(buffer_vodni_plochy)
-    # arcpy.Delete_management(buffer_voda)
-    # arcpy.Delete_management(buffer_voda_dissolve)
-    # arcpy.Delete_management(reky)
-    # arcpy.Delete_management(dmt)
-    # arcpy.Delete_management(reky_dissolve)
-    # arcpy.Delete_management(reky_dissolve_zkracene)
-    # arcpy.Delete_management(end_point)
-    # arcpy.Delete_management(outSnapPour)
-    # arcpy.Delete_management(povodi_polygon)
-    # arcpy.Delete_management(povodi_clip)
-    # arcpy.Delete_management(okoli)
-    # arcpy.Delete_management(okoli_single)
-    # arcpy.Delete_management(povodi_merge)
-    # arcpy.Delete_management(povodi_final)
-    # arcpy.Delete_management(rozvodnice)
-    # arcpy.Delete_management(rozvodnice_dissolve)
+    try:
+        arcpy.Delete_management(buffer_ctverec)
+        arcpy.Delete_management(vrstevnice)
+        arcpy.Delete_management(vodni_plocha_clip)
+        arcpy.Delete_management(vodni_toky_clip)
+        arcpy.Delete_management(buffer_vodni_toky)
+        arcpy.Delete_management(buffer_vodni_plochy)
+        arcpy.Delete_management(buffer_voda)
+        arcpy.Delete_management(buffer_voda_dissolve)
+        arcpy.Delete_management(reky)
+        arcpy.Delete_management(dmt)
+        arcpy.Delete_management(reky_dissolve)
+        arcpy.Delete_management(reky_dissolve_zkracene)
+        arcpy.Delete_management(end_point)
+        arcpy.Delete_management(outSnapPour)
+        arcpy.Delete_management(povodi_polygon)
+        arcpy.Delete_management(povodi_clip)
+        arcpy.Delete_management(basin)
+        arcpy.Delete_management("basin")
+        arcpy.Delete_management(basin_clip)
+        arcpy.Delete_management(basin_polygon)
+        arcpy.Delete_management(povodi_basin_merge)
+        arcpy.Delete_management(povodi_basin_final)
+        arcpy.Delete_management(rozvodnice)
+        arcpy.Delete_management(rozvodnice_dissolve)
 
-    arcpy.Delete_management(outFill)
-    arcpy.Delete_management(outFlowDirection)
-    arcpy.Delete_management(outFlowAccumulation)
+        arcpy.Delete_management(outFill)
+        arcpy.Delete_management(outFlowDirection)
+        arcpy.Delete_management(outFlowAccumulation)
+
+        arcpy.Delete_management("fill.tif")
+        arcpy.Delete_management("flowDirection.tif")
+        arcpy.Delete_management("flowAccum.tif")
+        arcpy.Delete_management("snap.tif")
+
+    except:
+        print "."
 
     #..................................................
 

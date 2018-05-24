@@ -42,7 +42,7 @@ with open(filename, "wb") as vysledky_file:
     # Vypocet pro vsechna uzemi
     # TODO zmenit na stav povodi - doplnit atribut
     #where = "stav_predvyber = 'nevypocteno'"
-    where = "Id = 1"
+    #where = "Id = 4"
     ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"]) #, "stav_predvyber"], where)
 
     for ctverec in ctverce_cursor:
