@@ -44,7 +44,8 @@ fieldnames = ["ID",
 # Open csv file for writing the results
 cislo = 1
 while True:
-    filename = config.workspace + "Nove_predvyber_VodniTok%s.csv" % cislo
+    filename = config.workspace + "VodniTok326_%s.csv" % cislo
+
     if not os.path.isfile(filename):
         break
     cislo = cislo +1

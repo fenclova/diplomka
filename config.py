@@ -12,7 +12,7 @@ databaze = r"C:\fenclova\diplomka\analyza\DP_databaze.sqlite"
 
 # set the paths
 workspace = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
-ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet_big2000') # fishnet = 875 ctvercu (prvni selekce) # fishnet_3ctverce # fishnet_big = 34 tisic
+ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet_3ctverce') # fishnet = 875 ctvercu (prvni selekce) # fishnet_3ctverce # fishnet_big = 34 tisic
 vstupni_data = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\\')
 
 # --------------------- fce_linearni_interpolace.py -----------------------------------
@@ -28,7 +28,7 @@ centroid_tolerance = "125 Meters"   # 125 m ve skutecnosti = 0,5 cm v mape
 
 # --------------------- fce_predvyber.py -----------------------------------
 # Zona pro vyber dat DIBAVOD vodni toky
-buffer_vodni_toky = "150 meters"
+buffer_vodni_toky = "200 meters"
 buffer_vodni_plochy = "100 meters"
 
 # Jak daleko od hranic uzemi muze byt pocatecni/koncovy bod linie vodniho toku pri vyberu vhodneho vodniho toku
