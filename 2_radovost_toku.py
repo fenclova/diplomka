@@ -1,6 +1,7 @@
 # Nazev:    2_radovost_toku.py
 # Autor:    Karolina Fenclova
-# Popis:    Skript na kazde uzemi vola funkci "fce_povodi.py", ktera pocita hodnoty kriterii
+# Popis:    Skript pocita delku vodnich toku podle absolutni radovosti
+#           Na kazde uzemi vola funkci "fce_povodi.py", ktera pocita hodnoty kriterii
 #           Hodnoty zapisuje do cvs souboru
 #
 # Vstup:    soubor config = nastaveni workspace + dat ke zpracovani
@@ -40,9 +41,8 @@ with open(filename, "wb") as vysledky_file:
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
-    # TODO zmenit na stav povodi - doplnit atribut
-    where = "stav_predvyber = 'nevypocteno'"
-    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"]) #, "stav_predvyber"], where)
+    where = "stav_radovost = 'nevypocteno'"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_radovost"], where)
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -60,8 +60,8 @@ with open(filename, "wb") as vysledky_file:
         vysledky_file.flush()
 
         # update stav
-        # ctverec[2] = "vypocteno"
-        # ctverce_cursor.updateRow(ctverec)
+        ctverec[2] = "vypocteno"
+        ctverce_cursor.updateRow(ctverec)
 
     del ctverce_cursor
 

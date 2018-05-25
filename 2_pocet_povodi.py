@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Nazev:    2_radovost_toku.py
 # Autor:    Karolina Fenclova
 # Popis:    Skript na kazde uzemi vola funkci "fce_povodi.py", ktera pocita hodnoty kriterii
@@ -25,7 +27,7 @@ sr = arcpy.SpatialReference(32633)
 
 
 # atributy pro zapis vysledku do csv souboru
-fieldnames = ["ID", "pocet_povodi", "rozvodnice_delka", "reky_delka"]
+fieldnames = ["ID", "pocet_povodi", "pocet_povodi_vse", "rozvodnice_delka", "reky_delka"]
 
 # Open csv file for writing the results
 cislo = 1
@@ -40,10 +42,8 @@ with open(filename, "wb") as vysledky_file:
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
-    # TODO zmenit na stav povodi - doplnit atribut
-    #where = "stav_predvyber = 'nevypocteno'"
-    #where = "Id = 4"
-    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"]) #, "stav_predvyber"], where)
+    where = "stav_povodi= 'nevypocteno'"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_povodi"], where)
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -53,8 +53,7 @@ with open(filename, "wb") as vysledky_file:
         # Volam funkci linarni interpolace
         result = povodi.tvorba_povodi(ID, shape, config.workspace, config.vstupni_data) #FCDataset_VybranyVodniTok)
 
-        # print "Vysledek = {0}".format(result)
-        print '.'
+        print "Vysledek = {0}".format(result)
 
         # zapis vysledek do csv souboru
         csv_writer.writerow(result)
