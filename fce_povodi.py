@@ -384,9 +384,9 @@ def tvorba_povodi(ID, shape, workspace, data):
     for i in r:
         try:
             arcpy.Delete_management(i)
-            print "r smazan"
+            print "s"
         except:
-            print "r nejde smazat"
+            print "n"
 
     arcpy.Delete_management(dibA02_ctverec)
 
