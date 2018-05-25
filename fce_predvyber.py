@@ -1,4 +1,5 @@
-# ....................................................................................................
+# -*- coding: utf-8 -*-
+
 # Nazev:    fce_predvyber.py
 # Autor:    Karolina Fenclova
 # Popis:    Skript na vypocet hodnot kriterii, ktere slouzi k prvotnimu vyberu vhodnych variant
@@ -20,27 +21,30 @@ arcpy.CheckOutExtension("Spatial")
 arcpy.env.overwriteOutput = True
 
 
-# Funkce predvyber uzemi
-def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
+# Funkce vypocte zakladni kriteria predvyberu
+def zakladni_kriteria(ID, shape, workspace, data):
     sr = arcpy.SpatialReference(32633)  # EPSG kod pro spatial reference
 
     # PRIPRAVA DAT PRO DANE UZEMI
-    print "Pripravuji data..."
+    print "data.."
+
+    # Zeleznice pro CTVEREC
+    zeleznice_clip = arcpy.Clip_analysis((data + "dmu25_drazni_komunikace"), shape, "zeleznice_clip.shp", "")
 
     # Vrstevnice pro zajmovou oblast
     vrstevnice_clip = arcpy.Clip_analysis((data + "dmu25_vrstevnice_ziv5m"), shape, "vrstevnice_clip.shp", "")
 
+    # Rozvodnice DIBAVOD A08 pro zajmovou oblast
+    rozvodnice_clip = arcpy.Clip_analysis((data + "dibavod_Povodi_III_A08"), shape, "rozvodnice_clip.shp", "")
+
     # Vodni plochy pro CTVEREC
     vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), shape, "vodni_plocha_clip.shp", "")
 
+    # Vodni plochy pro CTVEREC
+    vodni_nadrz_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plocha_nadrz"), shape, "vodni_nadrz_clip.shp", "")
+
     # Vodni toky pro CTVEREC
-    vodni_toky_clip = arcpy.Clip_analysis((data + "dmu25_reka_potok"), shape, "vodni_toky_clip.shp", "")
-
-    # Rozvodnice 3.radu pro CTVEREC
-    rozvodnice_clip = arcpy.Clip_analysis((data + "dibavod_Povodi_III_A08"), shape, "rozvodnice_clip.shp", "")
-
-    # Zeleznice pro CTVEREC
-    zeleznice_clip = arcpy.Clip_analysis((data + "dmu25_drazni_komunikace"), shape, "zeleznice_clip.shp", "")
+    dibA02_clip = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), shape, "A02_clip.shp", "")
 
     # Skalnate uzemi + povrchova tezba pro CTVEREC
     relief_clip = arcpy.Clip_analysis((data + "dmu25_relief"), shape, "relief_clip.shp", "")
@@ -49,14 +53,6 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     zastavba_clip = arcpy.Clip_analysis((data + "dmu25_zastavba"), shape, "zastavba_clip.shp", "")
 
     # ...................VYPOCET HODNOT KRITERII............................
-    # Delka rozvodnice
-    arcpy.AddGeometryAttributes_management(rozvodnice_clip, "LENGTH", "METERS")
-    g = arcpy.Geometry()
-    geometryList = arcpy.CopyFeatures_management(rozvodnice_clip, g)
-    rozvodnice_delka = 0
-    for geometry in geometryList:
-        rozvodnice_delka += geometry.length
-
     # Delka zeleznice
     arcpy.AddGeometryAttributes_management(zeleznice_clip, "LENGTH", "METERS")
     g = arcpy.Geometry()
@@ -65,6 +61,22 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     for geometry in geometryList:
         zeleznice_delka += geometry.length
 
+    # Delka vrstevnic
+    arcpy.AddGeometryAttributes_management(vrstevnice_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(vrstevnice_clip, g)
+    vrstevnice_delka = 0
+    for geometry in geometryList:
+        vrstevnice_delka += geometry.length
+
+    # Délka rozvodnice 3. radu (podle dibavod)
+    arcpy.AddGeometryAttributes_management(rozvodnice_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(rozvodnice_clip, g)
+    rozvodniceIII_delka = 0
+    for geometry in geometryList:
+        rozvodniceIII_delka += geometry.length
+
     # Rozloha vodni plochy
     arcpy.AddGeometryAttributes_management(vodni_plocha_clip, "AREA")
     g = arcpy.Geometry()
@@ -72,6 +84,22 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     vodni_plohy_rozloha = 0
     for geometry in geometryList:
         vodni_plohy_rozloha += geometry.area
+
+    # Rozloha vodních nádrží
+    arcpy.AddGeometryAttributes_management(vodni_nadrz_clip, "AREA")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(vodni_nadrz_clip, g)
+    vodni_nadrz_rozloha = 0
+    for geometry in geometryList:
+        vodni_nadrz_rozloha += geometry.area
+
+    # Delka vodnich toku DIBAVOD
+    arcpy.AddGeometryAttributes_management(dibA02_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(dibA02_clip, g)
+    dibA02_delka = 0
+    for geometry in geometryList:
+        dibA02_delka += geometry.length
 
     # Rozloha reliefu (skalnate uzemi + povrchova tezba)
     arcpy.AddGeometryAttributes_management(relief_clip, "AREA")
@@ -89,11 +117,53 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     for geometry in geometryList:
         zastavba_rozloha += geometry.area
 
+
+    # VYSLEDKY
+    result_info = [ID,
+                   round(zeleznice_delka, 2),
+                   round(vrstevnice_delka, 2),
+                   round(rozvodniceIII_delka, 2),
+                   round(vodni_plohy_rozloha, 2),
+                   round(vodni_nadrz_rozloha, 2),
+                   round(dibA02_delka, 2),
+                   round(relief_rozloha, 2),
+                   round(zastavba_rozloha, 2)]
+
+    # ....................................................................................................
+    # UKLID
+    arcpy.Delete_management(zeleznice_clip)
+    arcpy.Delete_management(vrstevnice_clip)
+    arcpy.Delete_management(rozvodnice_clip)
+    arcpy.Delete_management(vodni_plocha_clip)
+    arcpy.Delete_management(vodni_nadrz_clip)
+    arcpy.Delete_management(dibA02_clip)
+    arcpy.Delete_management(relief_clip)
+    arcpy.Delete_management(zastavba_clip)
+
+    return result_info
+
+# Funkce na vyber hlavniho toku, ktery deli uzemi v nejlepsim pomeru ploch
+def vyber_vodni_tok(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
+
+    sr = arcpy.SpatialReference(32633)  # EPSG kod pro spatial reference
+
+    # ....................................................................................................
+    # PRIPRAVA DAT PRO DANE UZEMI
+
+    # Vrstevnice pro zajmovou oblast
+    vrstevnice_clip = arcpy.Clip_analysis((data + "dmu25_vrstevnice_ziv5m"), shape, "vrstevnice_clip.shp", "")
+
+    # Vodni plochy pro CTVEREC
+    vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), shape, "vodni_plocha_clip.shp", "")
+
+    # Vodni toky pro CTVEREC
+    vodni_toky_clip = arcpy.Clip_analysis((data + "dmu25_reka_potok"), shape, "vodni_toky_clip.shp", "")
+
+
     # ....................................................................................................
     # TVORBA MRIZKY a UHLOPRICEK
 
     # Zakladni ctvercova mrizka po 1 kilometru
-    print "Tvorim mrizku..."
     desc = shape
     XMin = desc.extent.XMin
     YMax = desc.extent.YMax
@@ -102,8 +172,9 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
                                             "0", "0", str(desc.extent.upperRight), "LABELS", "#", "POLYGON")
     centroidy = "mrizka_1km_label.shp"
 
-    print "Tvorim uhlopricky pro mrizku..."
+    # vytvor soubor pro uhlopricky v dane mrizce
     uhlopricky = arcpy.CreateFeatureclass_management(workspace, "uhlopricky.shp", "POLYLINE", "#", "#", "#", sr)
+
     # Pridame atribut (VALUE <= ID)
     arcpy.AddField_management(uhlopricky, "VALUE", "SHORT")
 
@@ -157,7 +228,7 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
 
     # ....................................................................................................
     # VYBER 1 VODNI TOK, KTERY PROTINA CELE UZEMI A DELI HO NA 2 PRIBLIZNE SHODNE CASTI
-    print "Vybiram 1 vodni tok..."
+    print "Vybiram vodni tok..."
 
     buffer_vodni_toky = arcpy.Buffer_analysis(vodni_toky_clip, "buffer_vodni_toky.shp", config.buffer_vodni_toky,
                                               "FULL",
@@ -171,6 +242,9 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     buffer_voda = arcpy.Merge_management(inMerge, "buffer_voda.shp", "")
     buffer_voda_dissolve = arcpy.Dissolve_management(buffer_voda, "buffer_voda_dissolve.shp", "", "", "SINGLE_PART",
                                                      "DISSOLVE_LINES")
+    # spojeny buffer orizni podle ctverce
+    buffer_voda_dissolve_clip = arcpy.Clip_analysis(buffer_voda_dissolve, shape, "buffer.shp")
+
 
     # DIBAVOD (A02 vodni toky jemne useky) pro zajmovou oblast (ctverec)
     dibA02_clip = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02"), shape, "dibA02_clip.shp", "")
@@ -178,14 +252,15 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     # VYBER a VYMAZ useky DIBAVOD, pokud linie nelezi uvnitr obalove zony
     inFeatures = dibA02_clip
     tempLayer = "dibA02_clip.lyr"
-    selectFeatures = buffer_voda # TODO kontrola: nemelo tu byt buffer_voda_dissolve?
+    selectFeatures = buffer_voda_dissolve
     arcpy.MakeFeatureLayer_management(inFeatures, tempLayer)
     arcpy.SelectLayerByLocation_management(tempLayer, "WITHIN", selectFeatures, selection_type="NEW_SELECTION",
                                            invert_spatial_relationship="INVERT")
     arcpy.DeleteFeatures_management(tempLayer)
 
+
     # Vytvor databazi, dataset a network
-    print "creating database, dataset, network..."
+    print "river gdb, network..."
 
     # Create database and dataset
     if not arcpy.Exists("RiverNetwork.gdb"):
@@ -208,24 +283,20 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     obrys = arcpy.PolygonToLine_management(shape, "obrys")
 
     # create start points
-    print "creating start points..."
     start_points = arcpy.FeatureVerticesToPoints_management(edges, "start_points", "START")
 
+    # select and delete all start points not intersect polygon boundary
     tempLayer = "start_points.lyr"
     arcpy.MakeFeatureLayer_management(start_points, tempLayer)
-
-    # select and delete all start points not intersect polygon boundary
     arcpy.SelectLayerByLocation_management(tempLayer, "INTERSECT", obrys, "", "NEW_SELECTION", "INVERT")
     arcpy.DeleteFeatures_management(tempLayer)
 
     # create end points
-    print "creating end points..."
     end_points = arcpy.FeatureVerticesToPoints_management(edges, "end_points", "END")
 
+    # select and delete all end points not intersect polygon boundary
     tempLayer = "end_points.lyr"
     arcpy.MakeFeatureLayer_management(end_points, tempLayer)
-
-    # select and delete all end points not intersect polygon boundary
     arcpy.SelectLayerByLocation_management(tempLayer, "INTERSECT", obrys, "", "NEW_SELECTION", "INVERT")
     arcpy.DeleteFeatures_management(tempLayer)
 
@@ -237,6 +308,7 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     find_path_problem = 0  # to count how many path problems
     end_start_options = 0  # to store how many combinations of start and end points
 
+    print "zacinam hledat..."
     # all end points
     with arcpy.da.SearchCursor(end_points, "SHAPE@") as curEnd:
         for e in curEnd:
@@ -252,7 +324,7 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
 
                 inGeomStart = s[0]
                 partStart = inGeomStart.getPart(0)
-                print partEnd, partStart
+                #print partEnd, partStart
 
                 # create flags (all combination for start and end points)
                 if arcpy.Exists(os.path.join(RiverDatabase, str(NetworkDataset), "flags")):
@@ -269,7 +341,8 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
                 # !!! Zde byl probelem uvnitr funkce, nebehala fce TraceGeometricNetwork_management
                 # Trace Geometric Network function == selected edges and junctions
                 try:
-                    print "finding path..."
+                    print "c"
+                    # zkus najit cestu v siti
                     arcpy.TraceGeometricNetwork_management(network, "result_set", flags, "FIND_PATH",
                                                            in_trace_ends="NO_TRACE_ENDS",
                                                            in_trace_indeterminate_flow="NO_TRACE_INDETERMINATE_FLOW")
@@ -283,8 +356,6 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
                     selected_path = arcpy.CopyFeatures_management(newLyrs[2], "selected_path.shp")
 
                     # Feature to Polygon
-                    print "dividing polygons with selected paths..."
-
                     in_features = "selected_path.shp; obrys.shp"
                     dvojice = arcpy.FeatureToPolygon_management(in_features, "FeatureToPolygon.shp",
                                                                 config.tolerance_FeatureToPolygon,
@@ -295,15 +366,15 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
                     with arcpy.da.SearchCursor(dvojice, ['OID@', 'SHAPE@AREA']) as cursor:
                         for row in cursor:
                             area.append(row[1])
-                            print('Feature {} has an area of {}'.format(row[0], row[1]))
+                            #print('Feature {} has an area of {}'.format(row[0], row[1]))
                     del cursor
 
                     # if a polygon divided into 2 parts
                     if len(area) == 2:
                         podil_ploch = max(area) / min(area)
-                        print "-- Podil ploch = {}".format(podil_ploch)
+                        #print "-- Podil ploch = {}".format(podil_ploch)
                         deviation.append(podil_ploch - 1)
-                        print "Deviation = {}".format(podil_ploch - 1)
+                        #print "Deviation = {}".format(podil_ploch - 1)
 
                         if polygon_division_options == 0:
                             # first selection of river
@@ -318,7 +389,7 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
                             print "Prvni vyber vodniho toku."
 
                         else:
-                            print "Minimum deviation = {}".format(min(deviation))
+                            #print "Minimum deviation = {}".format(min(deviation))
 
                             # select if deviation is smaller
                             if (podil_ploch - 1) <= min(deviation):
@@ -330,29 +401,30 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
                                 arcpy.CopyFeatures_management(selected_path_dissolve,
                                                               fullPath_VybranyVodniTok)
                                 nejlepsi_podil_ploch = podil_ploch
-                                print "Vybrano jako vodni tok."
+                                print "v"
 
                             else:
-                                print "Odchylka neni mensi nez doposud minimalni."
+                                # vybrany vodni tok ma vyssi odchylku od idealniho rozdeleni plochy nez predesly
+                                print "n"
 
                         polygon_division_options += 1
                     else:
-                        print "Polygon nelze delit na 2 casti"
+                        # vybrana kombinace nedeli plochu
+                        print "-"
 
                 except:
-                    print "Problem s hledanim cesty"
+                    #print "Problem s hledanim cesty"
                     find_path_problem += 1
 
             del curStart
     del curEnd
-
-    print "Odchylky od 1 u VSECH moznych dvojic ploch = {}".format(deviation)
 
     try:
         arcpy.Delete_management(buffer_voda)
         arcpy.Delete_management(buffer_vodni_plochy)
         arcpy.Delete_management(buffer_vodni_toky)
         arcpy.Delete_management(buffer_voda_dissolve)
+        arcpy.Delete_management(buffer_voda_dissolve_clip)
         arcpy.Delete_management(dibA02_clip)
         arcpy.Delete_management(start_points)
         arcpy.Delete_management(end_points)
@@ -362,7 +434,7 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
         arcpy.Delete_management(dvojice)
         arcpy.Delete_management(RiverDatabase)
     except:
-        print "Neco nelze smazat."
+        print "."
 
     # Existuje vodni tok, ktery deli uzemi na 2 casti?
     fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok,
@@ -375,6 +447,7 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
         arcpy.DeleteIdentical_management(body_intersect, "Shape", "", "0")  # mazu identicke body
         body_intersect_single = arcpy.MultipartToSinglepart_management(body_intersect, "body_intersect_single.shp")
         pocet_pruseciku = int(arcpy.GetCount_management(body_intersect_single).getOutput(0))
+
     else:
         # Neni vodni tok = plocha nejde delit, nejsou pruseciky s mrizkou
         pocet_pruseciku = 0
@@ -384,17 +457,10 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
                    find_path_problem,
                    end_start_options,
                    round(nejlepsi_podil_ploch, 2),
-                   pocet_pruseciku,
-                   round(zeleznice_delka, 2),
-                   round(rozvodnice_delka, 2),
-                   round(vodni_plohy_rozloha, 2),
-                   round(relief_rozloha, 2),
-                   round(zastavba_rozloha, 2)]
+                   pocet_pruseciku]
 
     # ....................................................................................................
-    print "uklizim po sobe..."
-    arcpy.Delete_management(zeleznice_clip)
-    arcpy.Delete_management(rozvodnice_clip)
+    # uklid
     arcpy.Delete_management(mrizka)
     arcpy.Delete_management(obrys)
     arcpy.Delete_management(centroidy)
@@ -404,18 +470,13 @@ def fce_predvyber(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     arcpy.Delete_management(vrstevnice_clip)
     arcpy.Delete_management(vodni_plocha_clip)
     arcpy.Delete_management(vodni_toky_clip)
-    arcpy.Delete_management(relief_clip)
-    arcpy.Delete_management(zastavba_clip)
 
     try:
         arcpy.Delete_management(body_intersect)
         arcpy.Delete_management(body_intersect_single)
 
     except:
-        print "Uklizeno."
+        print "."
 
-    # ....................................................................................................
 
     return result_info
-
-# ------------------------------------------------------

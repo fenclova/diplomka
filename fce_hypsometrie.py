@@ -19,7 +19,7 @@ arcpy.CheckOutExtension("3D")
 arcpy.env.overwriteOutput = True
 
 # Funkce linearni interpolace
-def fce_linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice):
+def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice):
 
     sr = arcpy.SpatialReference(32633) # EPSG kod pro spatial reference
 

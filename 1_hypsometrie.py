@@ -47,7 +47,7 @@ for ctverec in ctverce_cursor:
 
     try:
         # Volam funkci linarni interpolace
-        result_linearni_interpolace = hypsometrie.fce_linearni_interpolace(ID, shape, config.workspace,
+        result_linearni_interpolace = hypsometrie.linearni_interpolace(ID, shape, config.workspace,
                                                                            config.vstupni_data, FCDataset_VybranyVodniTok,
                                                                            FCDataset_HypsoVrstevnice)
         print "mam vysledek."
