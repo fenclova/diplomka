@@ -243,7 +243,7 @@ def vyber_vodni_tok(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     buffer_voda_dissolve = arcpy.Dissolve_management(buffer_voda, "buffer_voda_dissolve.shp", "", "", "SINGLE_PART",
                                                      "DISSOLVE_LINES")
     # spojeny buffer orizni podle ctverce
-    buffer_voda_dissolve_clip = arcpy.Clip_analysis(buffer_voda_dissolve, shape, "buffer.shp")
+    # buffer_voda_dissolve_clip = arcpy.Clip_analysis(buffer_voda_dissolve, shape, "buffer.shp")
 
 
     # DIBAVOD (A02 vodni toky jemne useky) pro zajmovou oblast (ctverec)
@@ -424,7 +424,7 @@ def vyber_vodni_tok(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
         arcpy.Delete_management(buffer_vodni_plochy)
         arcpy.Delete_management(buffer_vodni_toky)
         arcpy.Delete_management(buffer_voda_dissolve)
-        arcpy.Delete_management(buffer_voda_dissolve_clip)
+        #arcpy.Delete_management(buffer_voda_dissolve_clip)
         arcpy.Delete_management(dibA02_clip)
         arcpy.Delete_management(start_points)
         arcpy.Delete_management(end_points)

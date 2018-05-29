@@ -55,7 +55,7 @@ while True:
     cislo = cislo +1
 
 with open(filename, "wb") as vysledky_file:
-    csv_writer = csv.writer(vysledky_file, delimiter=";")
+    csv_writer = csv.writer(vysledky_file, delimiter=",")
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
