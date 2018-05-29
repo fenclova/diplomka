@@ -19,8 +19,7 @@ arcpy.CheckOutExtension("3D")
 arcpy.env.overwriteOutput = True
 
 # Funkce linearni interpolace
-def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok1,
-                         FCDataset_VybranyVodniTok2, FCDataset_VybranyVodniTok3, FCDataset_HypsoVrstevnice):
+def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice):
 
     sr = arcpy.SpatialReference(32633) # EPSG kod pro spatial reference
 
@@ -219,18 +218,7 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok1,
     # ....................................................................................................
     # NACTENI VODNIHO TOKU
     # Existuje-li vodni tok, ktery deli uzemi na 2 casti
-    fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok1,
-                                            "v{0}_vodni_tok".format(ID))
-
-    if arcpy.Exists(os.path.join(FCDataset_VybranyVodniTok1, "v{0}_vodni_tok".format(ID))):
-        fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok1,
-                                                "v{0}_vodni_tok".format(ID))
-    elif arcpy.Exists(os.path.join(FCDataset_VybranyVodniTok2,
-                                            "v{0}_vodni_tok".format(ID))):
-        fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok2,
-                                                "v{0}_vodni_tok".format(ID))
-    else:
-        fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok3,
+    fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok,
                                                 "v{0}_vodni_tok".format(ID))
 
     if arcpy.Exists(fullPath_VybranyVodniTok):
