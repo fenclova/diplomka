@@ -19,7 +19,8 @@ arcpy.CheckOutExtension("3D")
 arcpy.env.overwriteOutput = True
 
 # Funkce linearni interpolace
-def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice):
+def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok1,
+                         FCDataset_VybranyVodniTok2, FCDataset_VybranyVodniTok3, FCDataset_HypsoVrstevnice):
 
     sr = arcpy.SpatialReference(32633) # EPSG kod pro spatial reference
 
@@ -218,11 +219,21 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
     # ....................................................................................................
     # NACTENI VODNIHO TOKU
     # Existuje-li vodni tok, ktery deli uzemi na 2 casti
-    fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok,
+    fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok1,
                                             "v{0}_vodni_tok".format(ID))
 
+    if arcpy.Exists(os.path.join(FCDataset_VybranyVodniTok1, "v{0}_vodni_tok".format(ID))):
+        fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok1,
+                                                "v{0}_vodni_tok".format(ID))
+    elif arcpy.Exists(os.path.join(FCDataset_VybranyVodniTok2,
+                                            "v{0}_vodni_tok".format(ID))):
+        fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok2,
+                                                "v{0}_vodni_tok".format(ID))
+    else:
+        fullPath_VybranyVodniTok = os.path.join(FCDataset_VybranyVodniTok3,
+                                                "v{0}_vodni_tok".format(ID))
+
     if arcpy.Exists(fullPath_VybranyVodniTok):
-        print "vodni tok existuje"
         # ....................................................................................................
         # PRUSECIKY VYBRANEHO VODNIHO TOKU A MRIZKY A UHLOPRICEK
         in_features = fullPath_VybranyVodniTok + ";" + "mrizka_uhlopricky.shp"
@@ -301,14 +312,21 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
     # TVORBA VRSTEVNIC z TIN
     print "vrstevnice..."
 
-    fullPath5 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv5".format(ID)))
-    hypso5 = arcpy.SurfaceContour_3d(tin, fullPath5, "5", "0")
+    # verze 1. chci ukladat vygenerovane vrstevnice
+    # fullPath5 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv5".format(ID)))
+    # hypso5 = arcpy.SurfaceContour_3d(tin, fullPath5, "5", "0")
+    #
+    # fullPath10 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv10".format(ID)))
+    # hypso10 = arcpy.SurfaceContour_3d(tin, fullPath10, "10", "0")
+    #
+    # fullPath20 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv20".format(ID)))
+    # hypso20 = arcpy.SurfaceContour_3d(tin, fullPath20, "20", "0")
 
-    fullPath10 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv10".format(ID)))
-    hypso10 = arcpy.SurfaceContour_3d(tin, fullPath10, "10", "0")
+    # verze 2. nechci ukladat vsechny vygenerovane vrstevnice
+    hypso5 = arcpy.SurfaceContour_3d(tin, "ziv5.shp", "5", "0")
+    hypso10 = arcpy.SurfaceContour_3d(tin, "ziv10.shp", "10", "0")
+    hypso20 = arcpy.SurfaceContour_3d(tin, "ziv20.shp", "20", "0")
 
-    fullPath20 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv20".format(ID)))
-    hypso20 = arcpy.SurfaceContour_3d(tin, fullPath20, "20", "0")
 
     # Pocet vrstevnic v celem uzemi 4x4 km
     hypso5_pocet = int(arcpy.GetCount_management(hypso5).getOutput(0))
