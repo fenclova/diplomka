@@ -13,8 +13,9 @@ databaze = r"C:\fenclova\diplomka\analyza\DP_databaze.sqlite"
 
 # set the paths
 workspace = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
-ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet_big_4472') # fishnet = 875 ctvercu (prvni selekce) # fishnet_3ctverce # fishnet_big = 34 tisic
+ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet_big_1991') # fishnet_big_4472, fishnet = 875 ctvercu (prvni selekce) # fishnet_3ctverce # fishnet_big = 34 tisic
 vstupni_data = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\\')
+vodni_toky = os.path.join(os.path.dirname(path_config), r'vysledky\vodni_toky\\')
 
 # --------------------- fce_linearni_interpolace.py -----------------------------------
 
@@ -38,3 +39,7 @@ tolerance_end = "0.01 meters"
 
 # Tolerance pro rozdeleni uzemi rekou na 2 casti
 tolerance_FeatureToPolygon = "0.5 meters"
+
+# --------------------- fce_povodi.py -----------------------------------
+# Obalova zona okolo uzemi, ze ktere vybiram vodni toky pro analyzu povodi
+buffer_povodi = "1000 meters"
