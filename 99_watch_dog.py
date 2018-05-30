@@ -11,7 +11,7 @@ print "watch_dog.py started:"
 
 while True:
     # Call a script until exit code is 777
-    return_code = subprocess.call([r"C:\Python27\ArcGIS10.5\python.exe", r"C:\fenclova\diplomka\analyza\git_diplomka\2_radovost_toku.py"])
+    return_code = subprocess.call([r"C:\Python27\ArcGIS10.5\python.exe", r"C:\fenclova\diplomka\analyza\git_diplomka\12_hypsometrie_pocet_povodi.py"])
     print ("navratovy kod pythonu.")
     if return_code == 777:
         break
