@@ -21,22 +21,18 @@ t1 = time.time()
 import arcpy, csv, config, sys, os
 
 # import funkce z jineho souboru
-import fce_hypsometrie_povodi as funkce
+import fce_hypsometrie as hypsometrie
+import fce_povodi as povodi
+import fce_predvyber as predvyber
 
 arcpy.env.workspace = config.workspace
 arcpy.env.overwriteOutput = True
 sr = arcpy.SpatialReference(32633)
 
 # Databaze GDB s vodnim tokem
-# TODO vyřešit databáze s řekami
-outDatabase = "Vodni_tok1.gdb"
-FCDataset_VybranyVodniTok1 = os.path.join("VodniTok_1.gdb", "VybranyVodniTok")
-FCDataset_VybranyVodniTok2 = os.path.join("VodniTok_2.gdb", "VybranyVodniTok")
-FCDataset_VybranyVodniTok3 = os.path.join("VodniTok_3.gdb", "VybranyVodniTok")
+FCDataset_VybranyVodniTok = os.path.join(config.vodni_toky, "VodniToky.gdb", "VybranyVodniTok")
 
-# Feature Class pro ukladani vysledku hypsometrie
-FCDataset_HypsoVrstevnice = os.path.join(outDatabase, "HypsoVrstevnice")
-
+# hlavičky pro zápis do csv souborů
 fieldnames5 = ["ID", "ziv5_celkem", "ziv5_1", "ziv5_2", "ziv5_3","ziv5_4","ziv5_5", "ziv5_6", "ziv5_7", "ziv5_8",
                "ziv5_9", "ziv5_10", "ziv5_11", "ziv5_12", "ziv5_13", "ziv5_14", "ziv5_15", "ziv5_16"]
 
@@ -46,8 +42,10 @@ fieldnames10 = ["ID", "ziv10_celkem", "ziv10_1", "ziv10_2", "ziv10_3","ziv10_4",
 fieldnames20 = ["ID", "ziv20_celkem", "ziv20_1", "ziv20_2", "ziv20_3","ziv20_4","ziv20_5", "ziv20_6", "ziv20_7", "ziv20_8",
                "ziv20_9", "ziv20_10", "ziv20_11", "ziv20_12", "ziv20_13", "ziv20_14", "ziv20_15", "ziv20_16"]
 
-fieldnamesPovodi = ["ID", "pocet_povodi", "pocet_povodi_vse", "rozvodnice_delka", "reky_delka"]
+fieldnamesPovodi = ["ID", "pocet_povodi", "pocet_povodi_vse", "rozvodnice_delka", "dibA02_delka"]
 
+fieldnamesKriteria = ["ID", "zeleznice_delka", "silnice_delka", "dalnice_delka", "vrstevnice_delka", "rozvodniceIII_delka", "rozvodniceII_delka", "rozvodniceI_delka",
+                "vodni_plohy_rozloha", "vodni_nadrz_rozloha", "dibA02_delka", "relief_rozloha", "zastavba_rozloha"]
 
 # Open csv file for writing the results
 cislo5 = 1
@@ -78,73 +76,89 @@ while True:
         break
     cisloPovodi = cisloPovodi +1
 
+cislo = 1
+while True:
+    filenameKriteria = config.workspace + "0_predvyber_vice%s.csv" % cislo
+    if not os.path.isfile(filenameKriteria):
+        break
+    cislo = cislo +1
+
 # Vypocet pro vsechna uzemi
-# TODO dodelat atribut hypso = pocitat (ty ctverce, ktere chci)
-# where = "stav_hypsometrie= 'nevypocteno'"
-where = "Id = 14"
-ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"], where) #, "stav_hypsometrie"], where)
+where = "stav_hypsometrie = 'nevypocteno'"
 
-with open(filenamePovodi, "wb") as vysledky_filePovodi:
-    csv_writerPovodi = csv.writer(vysledky_filePovodi)
-    csv_writerPovodi.writerow(fieldnamesPovodi)
+ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
 
-    with open(filename5, "wb") as vysledky_file5:
-        csv_writer5 = csv.writer(vysledky_file5)
-        csv_writer5.writerow(fieldnames5)
+with open(filenameKriteria, "wb") as vysledky_fileKriteria:
+    csv_writerKriteria = csv.writer(vysledky_fileKriteria)
+    csv_writerKriteria.writerow(fieldnamesKriteria)
 
-        with open(filename10, "wb") as vysledky_file10:
-            csv_writer10 = csv.writer(vysledky_file10)
-            csv_writer10.writerow(fieldnames10)
+    with open(filenamePovodi, "wb") as vysledky_filePovodi:
+        csv_writerPovodi = csv.writer(vysledky_filePovodi)
+        csv_writerPovodi.writerow(fieldnamesPovodi)
 
-            with open(filename20, "wb") as vysledky_file20:
-                csv_writer20 = csv.writer(vysledky_file20)
-                csv_writer20.writerow(fieldnames20)
+        with open(filename5, "wb") as vysledky_file5:
+            csv_writer5 = csv.writer(vysledky_file5)
+            csv_writer5.writerow(fieldnames5)
 
-                for ctverec in ctverce_cursor:
-                    ID = ctverec[0]
-                    shape = ctverec[1]
-                    print "\n ID: {0}".format(ID)
+            with open(filename10, "wb") as vysledky_file10:
+                csv_writer10 = csv.writer(vysledky_file10)
+                csv_writer10.writerow(fieldnames10)
 
-                    try:
-                        # Volam funkci linarni interpolace
-                        result = funkce.hypso_povodi(ID, shape, config.workspace, config.vstupni_data, FCDataset_VybranyVodniTok1)
+                with open(filename20, "wb") as vysledky_file20:
+                    csv_writer20 = csv.writer(vysledky_file20)
+                    csv_writer20.writerow(fieldnames20)
 
-                        ZIV5 = result[0]
-                        ZIV10 = result[1]
-                        ZIV20 = result[2]
-                        povodi = result[3]
+                    for ctverec in ctverce_cursor:
+                        ID = ctverec[0]
+                        shape = ctverec[1]
+                        print "\n ID: {0}".format(ID)
 
-                        # Pridani vysledku do CSV souboru, ulozeni
-                        csv_writer5.writerow(ZIV5)
-                        vysledky_file5.flush()
+                        try:
+                            # Volam funkci linarni interpolace
+                            vysledek_hypso = hypsometrie.linearni_interpolace(ID, shape, config.workspace, config.vstupni_data, FCDataset_VybranyVodniTok)
 
-                        csv_writer10.writerow(ZIV10)
-                        vysledky_file10.flush()
+                            # Volam funkci na pocet povodi
+                            vysledek_povodi = povodi.tvorba_povodi(ID, shape, config.workspace, config.vstupni_data)
 
-                        csv_writer20.writerow(ZIV20)
-                        vysledky_file20.flush()
+                            # Volam funkci na vypocet dalsich charakteristik
+                            vysledek_kriteria = predvyber.zakladni_kriteria(ID, shape, config.workspace, config.vstupni_data)
 
-                        csv_writerPovodi.writerow(povodi)
-                        vysledky_filePovodi.flush()
+                            # Pridani vysledku do CSV souboru, ulozeni
+                            csv_writer5.writerow(vysledek_hypso[0])
+                            vysledky_file5.flush()
 
-                        # update stav
-                        # ctverec[2] = "vypocteno"
-                        # ctverce_cursor.updateRow(ctverec)
+                            csv_writer10.writerow(vysledek_hypso[1])
+                            vysledky_file10.flush()
 
-                    except:
-                        "Nelze vypocitat."
+                            csv_writer20.writerow(vysledek_hypso[2])
+                            vysledky_file20.flush()
 
-                del ctverce_cursor
+                            csv_writerPovodi.writerow(vysledek_povodi)
+                            vysledky_filePovodi.flush()
 
-            vysledky_file20.close()
-        vysledky_file10.close()
-    vysledky_file5.close()
-vysledky_filePovodi.close()
+                            csv_writerKriteria.writerow(vysledek_kriteria)
+                            vysledky_fileKriteria.flush()
+
+                            # update stav
+                            ctverec[2] = "1"
+                            ctverce_cursor.updateRow(ctverec)
+
+                        except:
+                            "Nelze vypocitat."
+
+
+                    del ctverce_cursor
+
+                vysledky_file20.close()
+            vysledky_file10.close()
+        vysledky_file5.close()
+    vysledky_filePovodi.close()
+vysledky_fileKriteria.close()
 
 # Vysledny cas vypoctu
 t2 = time.time()
 TimeTakenSecs = str(t2 - t1)
-print ("cas vypoctu: " + TimeTakenSecs + "sekund")
+print ("Cas vypoctu: " + TimeTakenSecs + "sekund")
 
 print 'Konec 12_hypsometrie_pocet_povodi.py'
 
