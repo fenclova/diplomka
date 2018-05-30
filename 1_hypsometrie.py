@@ -26,13 +26,10 @@ arcpy.env.overwriteOutput = True
 sr = arcpy.SpatialReference(32633)
 
 # Databaze GDB s vodnim tokem
-outDatabase = "Vodni_tok1.gdb"
-FCDataset_VybranyVodniTok1 = os.path.join("VodniTok_1.gdb", "VybranyVodniTok")
-FCDataset_VybranyVodniTok2 = os.path.join("VodniTok_2.gdb", "VybranyVodniTok")
-FCDataset_VybranyVodniTok3 = os.path.join("VodniTok_3.gdb", "VybranyVodniTok")
+FCDataset_VybranyVodniTok = os.path.join(config.vodni_toky, "VodniToky.gdb", "VybranyVodniTok")
 
-# Feature Class pro ukladani vysledku hypsometrie
-FCDataset_HypsoVrstevnice = os.path.join(outDatabase, "HypsoVrstevnice")
+# Feature Class pro ukladani vysledku hypsometrie - dodelat gdb
+# FCDataset_HypsoVrstevnice = os.path.join("Hypsometrie", "Vrstevnice")
 
 fieldnames5 = ["ID", "ziv5_celkem", "ziv5_1", "ziv5_2", "ziv5_3","ziv5_4","ziv5_5", "ziv5_6", "ziv5_7", "ziv5_8",
                "ziv5_9", "ziv5_10", "ziv5_11", "ziv5_12", "ziv5_13", "ziv5_14", "ziv5_15", "ziv5_16"]
@@ -66,10 +63,8 @@ while True:
     cislo20 = cislo20 +1
 
 # Vypocet pro vsechna uzemi
-# TODO dodelat atribut hypso = pocitat (ty ctverce, ktere chci)
 # where = "stav_hypsometrie= 'nevypocteno'"
-where = "Id = 7696"
-ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"], where) #, "stav_hypsometrie"], where)
+ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"]) #, "stav_hypsometrie"], where)
 
 with open(filename5, "wb") as vysledky_file5:
     csv_writer5 = csv.writer(vysledky_file5, delimiter=",")
@@ -91,26 +86,21 @@ with open(filename5, "wb") as vysledky_file5:
                 try:
                     # Volam funkci linarni interpolace
                     result_linearni_interpolace = hypsometrie.linearni_interpolace(ID, shape, config.workspace,
-                                                                                       config.vstupni_data, FCDataset_VybranyVodniTok1, FCDataset_VybranyVodniTok2, FCDataset_VybranyVodniTok3,
-                                                                                       FCDataset_HypsoVrstevnice)
-                    print "vysledek"
-                    ZIV5 = result_linearni_interpolace[0]
-                    ZIV10 = result_linearni_interpolace[1]
-                    ZIV20 = result_linearni_interpolace[2]
+                                                                                       config.vstupni_data, FCDataset_VybranyVodniTok) #, FCDataset_HypsoVrstevnice)
 
                     # Pridani vysledku do CSV souboru, ulozeni
-                    csv_writer5.writerow(ZIV5)
+                    csv_writer5.writerow(result_linearni_interpolace[0])
                     vysledky_file5.flush()
 
-                    csv_writer10.writerow(ZIV10)
+                    csv_writer10.writerow(result_linearni_interpolace[1])
                     vysledky_file10.flush()
 
-                    csv_writer20.writerow(ZIV20)
+                    csv_writer20.writerow(result_linearni_interpolace[2])
                     vysledky_file20.flush()
 
                     # update stav
-                    ctverec[2] = "vypocteno"
-                    ctverce_cursor.updateRow(ctverec)
+                    # ctverec[2] = "vypocteno"
+                    # ctverce_cursor.updateRow(ctverec)
 
                 except:
                     "Nelze vypocitat."

@@ -15,6 +15,9 @@ arcpy.CheckOutExtension("Spatial")
 arcpy.CheckOutExtension("3D")
 arcpy.env.overwriteOutput = True
 
+# prostredi pro ulozeni mezivypoctu pro Spatial Analyst
+arcpy.env.scratchWorkspace = "in_memory"
+
 # Funkce pocita radovost vodnich toku v uzemi
 def radovost_vodnich_toku(ID, shape, workspace, data):
     cislo = ID
@@ -128,10 +131,7 @@ def radovost_vodnich_toku(ID, shape, workspace, data):
 
 # Funkce tvori povodi, pocita delku rozvodnic a delku vyuzitych vodnich toku
 def tvorba_povodi(ID, shape, workspace, data):
-    print "start.."
-
-    # prostredi pro ulozeni mezivypoctu pro Spatial Analyst
-    arcpy.env.scratchWorkspace = "in_memory"
+    print "povodi"
 
     cislo = ID
     sr = arcpy.SpatialReference(32633)  # EPSG kod pro spatial reference
@@ -156,7 +156,7 @@ def tvorba_povodi(ID, shape, workspace, data):
 
     else:
         # Zajmova oblast okolo ctverce
-        buffer_ctverec = arcpy.Buffer_analysis(shape, "buffer_ctverec.shp", "1000 meters")
+        buffer_ctverec = arcpy.Buffer_analysis(shape, "buffer_ctverec.shp", config.buffer_povodi)
 
         # Vrstevnice pro zajmovou oblast
         vrstevnice = arcpy.Clip_analysis((data + "dmu25_vrstevnice_ziv5m"), buffer_ctverec, "vrstevnice_clip.shp", "")
@@ -255,7 +255,6 @@ def tvorba_povodi(ID, shape, workspace, data):
 
             #.............................................................................
             # TVORBA POVODI
-            print "povodi.."
 
             # FILL DMR = vyplneni prohlubni
             outFill = Fill(dmt)
@@ -313,8 +312,7 @@ def tvorba_povodi(ID, shape, workspace, data):
             # pocet polygonu povodi eliminovanych o ty nejmensi
             pocet_povodi = arcpy.GetCount_management(povodi_basin_final)
 
-            # Delka rozvodnic
-            print "rozvodnice.."
+            # Tvorba rozvodnic + delka
             rozvodnice = arcpy.PolygonToLine_management(povodi_basin_final, "rozvodnice.shp", "IGNORE_NEIGHBORS")
             rozvodnice_dissolve = arcpy.Dissolve_management(rozvodnice, "rozvodnice_dissolve.shp")
 
@@ -378,15 +376,14 @@ def tvorba_povodi(ID, shape, workspace, data):
         arcpy.Delete_management(reky_dissolve_zkracene)
         arcpy.Delete_management(end_point)
 
-    # Autoamticke mazani rastru z workspace (= nefunguje, na datech je zámek)
-    r = arcpy.ListRasters('t_t*')
-
-    for i in r:
-        try:
-            arcpy.Delete_management(i)
-            print "s"
-        except:
-            print "n"
+    # Automaticke mazani rastru z workspace (= nefunguje, na datech je zámek)
+    # r = arcpy.ListRasters('t_t*')
+    #
+    # for i in r:
+    #     try:
+    #         arcpy.Delete_management(i)
+    #     except:
+    #         pass
 
     arcpy.Delete_management(dibA02_ctverec)
 

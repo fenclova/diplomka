@@ -27,10 +27,10 @@ arcpy.env.overwriteOutput = True
 sr = arcpy.SpatialReference(32633)
 
 # Databaze GDB pro ukladani vystupu pro hodnoceni
-if not arcpy.Exists("VodniTok_5170.gdb"):
-    outDatabase = str(arcpy.CreateFileGDB_management(out_folder_path= config.workspace, out_name="VodniTok_5170", out_version="CURRENT"))
+if not arcpy.Exists("VodniTok_4.gdb"):
+    outDatabase = str(arcpy.CreateFileGDB_management(out_folder_path= config.workspace, out_name="VodniTok_4", out_version="CURRENT"))
 else:
-    outDatabase = "VodniTok_5170.gdb"
+    outDatabase = "VodniTok_4.gdb"
 
 if not arcpy.Exists(os.path.join(outDatabase, "VybranyVodniTok")):
     FCDataset_VybranyVodniTok = str(arcpy.CreateFeatureDataset_management(outDatabase, "VybranyVodniTok", sr))
@@ -49,7 +49,7 @@ fieldnames = ["ID",
 # Open csv file for writing the results
 cislo = 1
 while True:
-    filename = config.workspace + "0_predvyber_vodni_tok%s.csv" % cislo
+    filename = config.workspace + "0_predvyber_vodni_tok4_%s.csv" % cislo
     if not os.path.isfile(filename):
         break
     cislo = cislo +1

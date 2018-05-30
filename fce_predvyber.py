@@ -26,16 +26,26 @@ def zakladni_kriteria(ID, shape, workspace, data):
     sr = arcpy.SpatialReference(32633)  # EPSG kod pro spatial reference
 
     # PRIPRAVA DAT PRO DANE UZEMI
-    print "data.."
+    print "kriteria"
 
     # Zeleznice pro CTVEREC
     zeleznice_clip = arcpy.Clip_analysis((data + "dmu25_drazni_komunikace"), shape, "zeleznice_clip.shp", "")
 
+    # Pozemni komunikace pro CTVEREC
+    silnice_clip = arcpy.Clip_analysis((data + "dmu25_silnice"), shape, "silnice_clip.shp", "")
+    dalnice_clip = arcpy.Clip_analysis((data + "dmu25_dalnice"), shape, "dalnice_clip.shp", "")
+
     # Vrstevnice pro zajmovou oblast
     vrstevnice_clip = arcpy.Clip_analysis((data + "dmu25_vrstevnice_ziv5m"), shape, "vrstevnice_clip.shp", "")
 
-    # Rozvodnice DIBAVOD A08 pro zajmovou oblast
-    rozvodnice_clip = arcpy.Clip_analysis((data + "dibavod_Povodi_III_A08"), shape, "rozvodnice_clip.shp", "")
+    # Rozvodnice DIBAVOD A08 pro zajmovou oblast III. rad
+    rozvodniceIII_clip = arcpy.Clip_analysis((data + "dibavod_Povodi_III_A08"), shape, "rozvodniceIII_clip.shp", "")
+
+    # Rozvodnice DIBAVOD II. radu
+    rozvodniceII_clip = arcpy.Clip_analysis((data + "dibavod_Povodi_II_A08"), shape, "rozvodniceII_clip.shp", "")
+
+    # Rozvodnice DIBAVOD I. radu
+    rozvodniceI_clip = arcpy.Clip_analysis((data + "dibavod_Povodi_I_A08"), shape, "rozvodniceI_clip.shp", "")
 
     # Vodni plochy pro CTVEREC
     vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), shape, "vodni_plocha_clip.shp", "")
@@ -61,6 +71,22 @@ def zakladni_kriteria(ID, shape, workspace, data):
     for geometry in geometryList:
         zeleznice_delka += geometry.length
 
+    # Delka silnic
+    arcpy.AddGeometryAttributes_management(silnice_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(silnice_clip, g)
+    silnice_delka = 0
+    for geometry in geometryList:
+        silnice_delka += geometry.length
+
+    # Delka dalnic
+    arcpy.AddGeometryAttributes_management(dalnice_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(dalnice_clip, g)
+    dalnice_delka = 0
+    for geometry in geometryList:
+        dalnice_delka += geometry.length
+
     # Delka vrstevnic
     arcpy.AddGeometryAttributes_management(vrstevnice_clip, "LENGTH", "METERS")
     g = arcpy.Geometry()
@@ -70,12 +96,28 @@ def zakladni_kriteria(ID, shape, workspace, data):
         vrstevnice_delka += geometry.length
 
     # Délka rozvodnice 3. radu (podle dibavod)
-    arcpy.AddGeometryAttributes_management(rozvodnice_clip, "LENGTH", "METERS")
+    arcpy.AddGeometryAttributes_management(rozvodniceIII_clip, "LENGTH", "METERS")
     g = arcpy.Geometry()
-    geometryList = arcpy.CopyFeatures_management(rozvodnice_clip, g)
+    geometryList = arcpy.CopyFeatures_management(rozvodniceIII_clip, g)
     rozvodniceIII_delka = 0
     for geometry in geometryList:
         rozvodniceIII_delka += geometry.length
+
+    # Délka rozvodnice 3. radu (podle dibavod)
+    arcpy.AddGeometryAttributes_management(rozvodniceII_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(rozvodniceII_clip, g)
+    rozvodniceII_delka = 0
+    for geometry in geometryList:
+        rozvodniceII_delka += geometry.length
+
+    # Délka rozvodnice 3. radu (podle dibavod)
+    arcpy.AddGeometryAttributes_management(rozvodniceI_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(rozvodniceI_clip, g)
+    rozvodniceI_delka = 0
+    for geometry in geometryList:
+        rozvodniceI_delka += geometry.length
 
     # Rozloha vodni plochy
     arcpy.AddGeometryAttributes_management(vodni_plocha_clip, "AREA")
@@ -121,8 +163,12 @@ def zakladni_kriteria(ID, shape, workspace, data):
     # VYSLEDKY
     result_info = [ID,
                    round(zeleznice_delka, 2),
+                   round(silnice_delka, 2),
+                   round(dalnice_delka, 2),
                    round(vrstevnice_delka, 2),
                    round(rozvodniceIII_delka, 2),
+                   round(rozvodniceII_delka, 2),
+                   round(rozvodniceI_delka, 2),
                    round(vodni_plohy_rozloha, 2),
                    round(vodni_nadrz_rozloha, 2),
                    round(dibA02_delka, 2),
@@ -132,8 +178,12 @@ def zakladni_kriteria(ID, shape, workspace, data):
     # ....................................................................................................
     # UKLID
     arcpy.Delete_management(zeleznice_clip)
+    arcpy.Delete_management(silnice_clip)
+    arcpy.Delete_management(dalnice_clip)
     arcpy.Delete_management(vrstevnice_clip)
-    arcpy.Delete_management(rozvodnice_clip)
+    arcpy.Delete_management(rozvodniceIII_clip)
+    arcpy.Delete_management(rozvodniceII_clip)
+    arcpy.Delete_management(rozvodniceI_clip)
     arcpy.Delete_management(vodni_plocha_clip)
     arcpy.Delete_management(vodni_nadrz_clip)
     arcpy.Delete_management(dibA02_clip)

@@ -19,12 +19,12 @@ arcpy.CheckOutExtension("3D")
 arcpy.env.overwriteOutput = True
 
 # Funkce linearni interpolace
-def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice):
+def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok): #, FCDataset_HypsoVrstevnice):
 
     sr = arcpy.SpatialReference(32633) # EPSG kod pro spatial reference
 
     # PRIPRAVA DAT PRO DANE UZEMI
-    print "data..."
+    print "hypso"
 
     # Zajmova oblast okolo ctverce
     buffer_ctverec = arcpy.Buffer_analysis(shape, "buffer_ctverec.shp", config.buffer_ctverec_vzdalenost)
@@ -45,7 +45,6 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
     # OPRAVA SMERU VODNICH TOKU - podle Digitalniho modelu terenu (jen z vrstevnic)
 
     # Digitalni model terenu pouze z vrstevnic = slouzi k urceni vysky pocatku a konce vodniho toku
-    print "dmt..."
     inContours = "vrstevnice_clip.shp VYSKA Contour"
     outFeature = "dmt"
     ext_pro_dmt = arcpy.Describe(buffer_ctverec)
@@ -107,14 +106,12 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
     inStream = "vodni_toky_clip.shp # Stream"
     inFeatures = (inPointElevations + ";" + inContours + ";" + inLake + ";" + inStream)
 
-    print "znovu dmt..."
     dmt = arcpy.TopoToRaster_3d(inFeatures, "dmt", config.dmt_resolution, extent)
 
     #....................................................................................................
     # TVORBA MRIZKY, ROHOVYCH BODU, CENTROIDU A ZJISTOVANI VYSKY
 
     # Zakladni ctvercova mrizka po 1 kilometru
-    print "mrizka a body..."
     desc = shape
     XMin = desc.extent.XMin
     YMax = desc.extent.YMax
@@ -161,8 +158,6 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
 
     # ....................................................................................................
     # TVORBA UHLOPRICEK
-
-    print "uhlopricky..."
     uhlopricky = arcpy.CreateFeatureclass_management(arcpy.env.workspace, "uhlopricky.shp", "POLYLINE", "#", "#", "#", sr)
     # Pridame atribut (VALUE <= ID)
     arcpy.AddField_management(uhlopricky, "VALUE", "SHORT")
@@ -287,18 +282,16 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
 
         # ....................................................................................................
         # TVORBA TINu z 25 + 16 + X bodu
-        print "tin..."
         inFeatures = "body25_vyska.shp VYSKA Mass_Points <None>;body_intersect_vyska.shp VYSKA Mass_Points <None>;centroidy_vyska.shp VYSKA Mass_Points <None>;vodni_tok_3D.shp Shape.Z Hard_Line <None>"
         tin = arcpy.CreateTin_3d("TIN", sr, inFeatures, "constrained_delaunay")
 
     else:
-        # TVORBA TINu z 25 + 16 bodu
-        print "Neni vodni tok, tin..."
+        # neni vodni tok >> TVORBA TINu z 25 + 16 bodu
+        print "Neni vodni tok"
         inFeatures = "body25_vyska.shp VYSKA Mass_Points <None>;centroidy_vyska.shp VYSKA Mass_Points <None>"
         tin = arcpy.CreateTin_3d("TIN", sr, inFeatures, "constrained_delaunay")
 
     # TVORBA VRSTEVNIC z TIN
-    print "vrstevnice..."
 
     # verze 1. chci ukladat vygenerovane vrstevnice
     # fullPath5 = str(os.path.join(FCDataset_HypsoVrstevnice, "c{0}_ziv5".format(ID)))
@@ -315,21 +308,16 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
     hypso10 = arcpy.SurfaceContour_3d(tin, "ziv10.shp", "10", "0")
     hypso20 = arcpy.SurfaceContour_3d(tin, "ziv20.shp", "20", "0")
 
-
     # Pocet vrstevnic v celem uzemi 4x4 km
     hypso5_pocet = int(arcpy.GetCount_management(hypso5).getOutput(0))
     hypso10_pocet = int(arcpy.GetCount_management(hypso10).getOutput(0))
     hypso20_pocet = int(arcpy.GetCount_management(hypso20).getOutput(0))
-
-    # print "Zadani cislo: {0}, ZIV 5 m = {1} vrstevnic, ZIV 10 m = {2} vrstevnic, ZIV 20 m = {3} vrstevnic.".format(
-    #     ID, hypso5_pocet, hypso10_pocet, hypso20_pocet)
 
     ZIV5 = [ID, hypso5_pocet]
     ZIV10 = [ID, hypso10_pocet]
     ZIV20 = [ID, hypso20_pocet]
 
     # Pocet vrstevnic v dilcich ctvercich 1x1 km
-    print "pocet vrstevnic..."
     mrizka_cursor = arcpy.SearchCursor(mrizka)
 
     for row in mrizka_cursor:
@@ -349,14 +337,14 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
     del mrizka_cursor
 
     # ....................................................................................................
-    print "uklizim..."
+    # uklid
     arcpy.Delete_management(buffer_ctverec)
     arcpy.Delete_management(dmt)
     arcpy.Delete_management(tin)
     arcpy.Delete_management(centroidy)
-    arcpy.Delete_management(centroidy_vyska)    # asi ulozeit do databaze
+    arcpy.Delete_management(centroidy_vyska)
     arcpy.Delete_management(body25)
-    arcpy.Delete_management(body25_vyska)       # asi ulozit do databaze
+    arcpy.Delete_management(body25_vyska)
     arcpy.Delete_management(zonal_min)
     arcpy.Delete_management(zonal_max)
     arcpy.Delete_management(mrizka)
@@ -384,7 +372,7 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
         arcpy.Delete_management(vodni_tok_dissolve)
 
     except:
-        print "."
+        pass
 
     # ....................................................................................................
     # VYSLEDEK = list listu

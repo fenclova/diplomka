@@ -24,7 +24,7 @@ import fce_povodi as povodi
 arcpy.env.workspace = config.workspace
 arcpy.env.overwriteOutput = True
 sr = arcpy.SpatialReference(32633)
-
+arcpy.env.scratchWorkspace = "in_memory"
 
 # atributy pro zapis vysledku do csv souboru
 fieldnames = ["ID", "pocet_povodi", "pocet_povodi_vse", "rozvodnice_delka", "reky_delka"]
@@ -42,8 +42,8 @@ with open(filename, "wb") as vysledky_file:
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
-    where = "stav_povodi= 'nevypocteno'"
-    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_povodi"], where)
+    #where = "stav_povodi= 'nevypocteno'"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"]) #, "stav_povodi"], where)
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -62,6 +62,10 @@ with open(filename, "wb") as vysledky_file:
         # update stav
         # ctverec[2] = "vypocteno"
         # ctverce_cursor.updateRow(ctverec)
+
+        tp = time.time()
+        TimeTakenSecs = str(tp - t1)
+        print ("cas: " + TimeTakenSecs)
 
     del ctverce_cursor
 
