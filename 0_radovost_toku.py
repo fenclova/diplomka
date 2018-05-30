@@ -9,7 +9,7 @@
 # Vystup:   soubor csv s hodnotou kriterii (vystup fce_povodi.py)
 
 ##########################################################################################################
-print "Start 2_radovost_toku.py"
+print "Start 0_radovost_toku.py"
 
 # Merim cas vypoctu
 import time
@@ -31,7 +31,7 @@ fieldnames = ["ID", "celkova_delka", "r0", "r1", "r2", "r3", "r4", "r5", "r6", "
 # Open csv file for writing the results
 cislo = 1
 while True:
-    filename = config.workspace + "2_radovost_toku%s.csv" % cislo
+    filename = config.workspace + "0_radovost_toku%s.csv" % cislo
     if not os.path.isfile(filename):
         break
     cislo = cislo +1
