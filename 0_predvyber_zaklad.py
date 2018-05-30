@@ -26,22 +26,13 @@ arcpy.env.workspace = config.workspace
 arcpy.env.overwriteOutput = True
 sr = arcpy.SpatialReference(32633)
 
-# Databaze GDB pro ukladani vystupu pro hodnoceni
-# if not arcpy.Exists("Outputs.gdb"):
-#     outDatabase = str(arcpy.CreateFileGDB_management(out_folder_path= config.workspace, out_name="Outputs", out_version="CURRENT"))
-# else:
-#     outDatabase = "Outputs.gdb"
-#
-# if not arcpy.Exists(os.path.join(outDatabase, "VybranyVodniTok")):
-#     FCDataset_VybranyVodniTok = str(arcpy.CreateFeatureDataset_management(outDatabase, "VybranyVodniTok", sr))
-# else:
-#     FCDataset_VybranyVodniTok = os.path.join(outDatabase, "VybranyVodniTok")
-
 
 fieldnames = ["ID",
                 "zeleznice_delka",
                 "vrstevnice_delka",
                 "rozvodniceIII_delka",
+                "rozvodniceII_delka",
+                "rozvodniceI_delka",
                 "vodni_plohy_rozloha",
                 "vodni_nadrz_rozloha",
                 "dibA02_delka",
