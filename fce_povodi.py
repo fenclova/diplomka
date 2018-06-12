@@ -138,6 +138,7 @@ def tvorba_povodi(ID, shape, workspace, data):
 
     # ....................................................................................................
     # EXISTUJI VODNI TOKY DIBAVOD V UZEMI?
+    arcpy.Delete_management("dibA02_ctverec.shp")
     dibA02_ctverec = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), shape, "dibA02_ctverec.shp", "")
 
     g = arcpy.Geometry()
@@ -148,7 +149,7 @@ def tvorba_povodi(ID, shape, workspace, data):
 
     # jsou v uzemi vodni toky?
     if (dibA02_ctverec_delka == 0):
-        print "chybi vodni toky"
+        print "v uzemi uplne chybi vodni toky"
         pocet_povodi = 0
         pocet_povodi_vse = 0
         rozvodnice_delka = 0
@@ -156,28 +157,39 @@ def tvorba_povodi(ID, shape, workspace, data):
 
     else:
         # Zajmova oblast okolo ctverce
+        arcpy.Delete_management("buffer_ctverec.shp")
         buffer_ctverec = arcpy.Buffer_analysis(shape, "buffer_ctverec.shp", config.buffer_povodi)
 
         # Vrstevnice pro zajmovou oblast
+        arcpy.Delete_management("vrstevnice_clip.shp")
         vrstevnice = arcpy.Clip_analysis((data + "dmu25_vrstevnice_ziv5m"), buffer_ctverec, "vrstevnice_clip.shp", "")
 
         # Vodni plochy pro CTVEREC
+        arcpy.Delete_management("vodni_plocha_clip.shp")
         vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), buffer_ctverec, "vodni_plocha_clip.shp", "")
 
         # Vodni toky pro CTVEREC
+        arcpy.Delete_management("vodni_toky_clip.shp")
         vodni_toky_clip = arcpy.Clip_analysis((data + "dmu25_reka_potok"), buffer_ctverec, "vodni_toky_clip.shp", "")
 
         # Obalova zona okolo dat dmu25 - pro vyber dibavod
+        arcpy.Delete_management("buffer_vodni_toky.shp")
         buffer_vodni_toky = arcpy.Buffer_analysis(vodni_toky_clip, "buffer_vodni_toky.shp", config.buffer_vodni_toky,
                                                   "FULL",
                                                   "ROUND", "ALL")
+
+        arcpy.Delete_management("buffer_vodni_plochy.shp")
         buffer_vodni_plochy = arcpy.Buffer_analysis(vodni_plocha_clip, "buffer_vodni_plochy.shp",
                                                     config.buffer_vodni_plochy, "FULL",
                                                     "ROUND", "ALL")
 
         # Spoj obalove zony reky a vodni plochy
         inMerge = "buffer_vodni_toky.shp;buffer_vodni_plochy.shp"
+
+        arcpy.Delete_management("buffer_voda.shp")
         buffer_voda = arcpy.Merge_management(inMerge, "buffer_voda.shp", "")
+
+        arcpy.Delete_management("buffer_voda_dissolve.shp")
         buffer_voda_dissolve = arcpy.Dissolve_management(buffer_voda, "buffer_voda_dissolve.shp", "", "", "SINGLE_PART",
                                                          "DISSOLVE_LINES")
 
@@ -185,6 +197,7 @@ def tvorba_povodi(ID, shape, workspace, data):
         buffer_voda = arcpy.Clip_analysis(buffer_voda_dissolve, buffer_ctverec, "buffer_voda.shp")
 
         # Vodni toky DIBAVOD orizi podle obalove zony vodnich toku a ploch v DMU25
+        arcpy.Delete_management("reky_clip.shp")
         reky = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), buffer_voda, "reky_clip.shp", "")
 
         # model reliefu pro zajmovou oblast
@@ -196,12 +209,14 @@ def tvorba_povodi(ID, shape, workspace, data):
         extent = (str(ext_pro_dmt.extent.XMin) + " " + str(ext_pro_dmt.extent.YMin) + " " + str(
                 ext_pro_dmt.extent.XMax) + " " + str(ext_pro_dmt.extent.YMax))
         #arcpy.env.extent = extent
+        arcpy.Delete_management("dmt")
         dmt = arcpy.TopoToRaster_3d(inFeatures, outFeature, config.dmt_resolution, extent)
 
         #......................................................
         # PRIPRAVA REK
 
         # dissolve reky podle ID - slouci tok do 1 linie
+        arcpy.Delete_management("reky_dissolve.shp")
         reky_dissolve = arcpy.Dissolve_management(reky, "reky_dissolve.shp", ["TOK_ID", "gravelius"], "", "SINGLE_PART", "DISSOLVE_LINES")
 
         # pridej atribut "delka"
@@ -216,6 +231,7 @@ def tvorba_povodi(ID, shape, workspace, data):
         arcpy.DeleteFeatures_management(tempLayer)
 
         # Spocti delku oriznutych a vybranych vodnich toku DIBAVOD (jen v uzemi čtverce)
+        arcpy.Delete_management("reky_dissolve_clip.shp")
         reky_dissolve_clip = arcpy.Clip_analysis(reky_dissolve, shape, "reky_dissolve_clip.shp")
 
         g = arcpy.Geometry()
@@ -324,34 +340,34 @@ def tvorba_povodi(ID, shape, workspace, data):
                 rozvodnice_delka += geometry.length
 
             # uklid po povodi
-            arcpy.Delete_management(outSnapPour)
-            arcpy.Delete_management(povodi_polygon)
-            arcpy.Delete_management(povodi_clip)
-            arcpy.Delete_management(basin)
-            arcpy.Delete_management(basin_clip)
-            arcpy.Delete_management(basin_polygon)
-            arcpy.Delete_management(povodi_basin_merge)
-            arcpy.Delete_management(povodi_basin_final)
-            arcpy.Delete_management(rozvodnice)
-            arcpy.Delete_management(rozvodnice_dissolve)
+            # arcpy.Delete_management(outSnapPour)
+            # arcpy.Delete_management(povodi_polygon)
+            # arcpy.Delete_management(povodi_clip)
+            # arcpy.Delete_management(basin)
+            # arcpy.Delete_management(basin_clip)
+            # arcpy.Delete_management(basin_polygon)
+            # arcpy.Delete_management(povodi_basin_merge)
+            # arcpy.Delete_management(povodi_basin_final)
+            # arcpy.Delete_management(rozvodnice)
+            # arcpy.Delete_management(rozvodnice_dissolve)
 
-            arcpy.Delete_management(outFill)
-            arcpy.Delete_management(outFlowDirection)
-            arcpy.Delete_management(outFlowAccumulation)
-            arcpy.Delete_management(outWatershed)
-            arcpy.Delete_management(outBasin)
-            arcpy.Delete_management(outSnapPour)
+            # arcpy.Delete_management(outFill)
+            # arcpy.Delete_management(outFlowDirection)
+            # arcpy.Delete_management(outFlowAccumulation)
+            # arcpy.Delete_management(outWatershed)
+            # arcpy.Delete_management(outBasin)
+            # arcpy.Delete_management(outSnapPour)
 
-            arcpy.Delete_management("basin.tif")
-            arcpy.Delete_management("fill.tif")
-            arcpy.Delete_management("flowDirection.tif")
-            arcpy.Delete_management("flowAccum.tif")
-            arcpy.Delete_management("snap.tif")
-            arcpy.Delete_management("watershed.tif")
+            # arcpy.Delete_management("basin.tif")
+            # arcpy.Delete_management("fill.tif")
+            # arcpy.Delete_management("flowDirection.tif")
+            # arcpy.Delete_management("flowAccum.tif")
+            # arcpy.Delete_management("snap.tif")
+            # arcpy.Delete_management("watershed.tif")
 
 
         else:
-            print "Chybi vodni tok."
+            print "blbo chyba = chybi vodni tok"
 
             # v uzemi neni vodni tok = 0 povodi, 0 delka rozvodnice
             pocet_povodi = 0
@@ -361,20 +377,20 @@ def tvorba_povodi(ID, shape, workspace, data):
         #..................................................
         # uklid celkovy:
 
-        arcpy.Delete_management(buffer_ctverec)
-        arcpy.Delete_management(vrstevnice)
-        arcpy.Delete_management(vodni_plocha_clip)
-        arcpy.Delete_management(vodni_toky_clip)
-        arcpy.Delete_management(buffer_vodni_toky)
-        arcpy.Delete_management(buffer_vodni_plochy)
-        arcpy.Delete_management(buffer_voda)
-        arcpy.Delete_management(buffer_voda_dissolve)
-        arcpy.Delete_management(reky)
-        arcpy.Delete_management(dmt)
-        arcpy.Delete_management(reky_dissolve)
-        arcpy.Delete_management(reky_dissolve_clip)
-        arcpy.Delete_management(reky_dissolve_zkracene)
-        arcpy.Delete_management(end_point)
+        # arcpy.Delete_management(buffer_ctverec)
+        # arcpy.Delete_management(vrstevnice)
+        # arcpy.Delete_management(vodni_plocha_clip)
+        # arcpy.Delete_management(vodni_toky_clip)
+        # arcpy.Delete_management(buffer_vodni_toky)
+        # arcpy.Delete_management(buffer_vodni_plochy)
+        # arcpy.Delete_management(buffer_voda)
+        # arcpy.Delete_management(buffer_voda_dissolve)
+        # arcpy.Delete_management(reky)
+        # arcpy.Delete_management(dmt)
+        # arcpy.Delete_management(reky_dissolve)
+        # arcpy.Delete_management(reky_dissolve_clip)
+        # arcpy.Delete_management(reky_dissolve_zkracene)
+        # arcpy.Delete_management(end_point)
 
     # Automaticke mazani rastru z workspace (= nefunguje, na datech je zámek)
     # r = arcpy.ListRasters('t_t*')
@@ -385,7 +401,7 @@ def tvorba_povodi(ID, shape, workspace, data):
     #     except:
     #         pass
 
-    arcpy.Delete_management(dibA02_ctverec)
+    #arcpy.Delete_management(dibA02_ctverec)
 
     # funkce vrací výsledek
     return [cislo, pocet_povodi, pocet_povodi_vse, round(rozvodnice_delka, 2), round(reky_ctverec_delka, 2)]

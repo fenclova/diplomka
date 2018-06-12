@@ -63,8 +63,8 @@ while True:
     cislo20 = cislo20 +1
 
 # Vypocet pro vsechna uzemi
-# where = "stav_hypsometrie= 'nevypocteno'"
-ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"]) #, "stav_hypsometrie"], where)
+where = "stav_hypsometrie= 'nevypocteno'"
+ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
 
 with open(filename5, "wb") as vysledky_file5:
     csv_writer5 = csv.writer(vysledky_file5, delimiter=",")
@@ -99,8 +99,8 @@ with open(filename5, "wb") as vysledky_file5:
                     vysledky_file20.flush()
 
                     # update stav
-                    # ctverec[2] = "vypocteno"
-                    # ctverce_cursor.updateRow(ctverec)
+                    ctverec[2] = "hypso"
+                    ctverce_cursor.updateRow(ctverec)
 
                 except:
                     "Nelze vypocitat."

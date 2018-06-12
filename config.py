@@ -15,7 +15,8 @@ databaze = r"C:\fenclova\diplomka\analyza\DP_databaze.sqlite"
 workspace = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
 ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet_big_1991') # fishnet_big_4472, fishnet = 875 ctvercu (prvni selekce) # fishnet_3ctverce # fishnet_big = 34 tisic
 vstupni_data = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\\')
-vodni_toky = os.path.join(os.path.dirname(path_config), r'vysledky\vodni_toky\\')
+#vodni_toky = os.path.join(os.path.dirname(path_config), r'vysledky\vodni_toky\\')
+vodni_toky = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
 
 # --------------------- fce_linearni_interpolace.py -----------------------------------
 

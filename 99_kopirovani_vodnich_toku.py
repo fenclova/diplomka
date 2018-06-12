@@ -29,7 +29,8 @@ fieldnames = ["ID"]
 filename = config.workspace + "99_chybi_vodni_tok"
 chybi = []
 
-ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id"])
+where = "Id >= 32828"
+ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id"], where)
 
 with open(filename, "wb") as vysledky_file:
     csv_writer = csv.writer(vysledky_file)

@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Nazev:    2_radovost_toku.py
+
+# Nazev:    0_predvyber_zaklad.py
 # Autor:    Karolina Fenclova
-# Popis:    Skript na kazde uzemi vola funkci "fce_povodi.py", ktera pocita hodnoty kriterii
+# Popis:    Skript na kazde uzemi vola funkci "fce_predvyber.py", ktera pocita hodnoty kriterii
 #           Hodnoty zapisuje do cvs souboru
 #
 # Vstup:    soubor config = nastaveni workspace + dat ke zpracovani
 #
-# Vystup:   soubor csv s hodnotou kriterii (vystup fce_povodi.py)
+# Vystup:   soubor csv s hodnotou kriterii (vystup fce_predvyber.py)
 
 ##########################################################################################################
-print "Start 2_pocet_povodi.py"
+print "Start 0_predvyber_zaklad.py:"
 
 # Merim cas vypoctu
 import time
@@ -19,32 +20,32 @@ t1 = time.time()
 import arcpy, os, csv, config, sys
 
 # import funkce z jineho souboru
-import fce_povodi as povodi
+import fce_predvyber as predvyber
 
 arcpy.env.workspace = config.workspace
 arcpy.env.overwriteOutput = True
 sr = arcpy.SpatialReference(32633)
-arcpy.env.scratchWorkspace = "in_memory"
 
-# atributy pro zapis vysledku do csv souboru
-fieldnames = ["ID", "pocet_povodi", "pocet_povodi_vse", "rozvodnice_delka", "reky_delka"]
+
+fieldnames = ["ID",
+                "dibA02_delka",
+              "dibA02_vyber_delka"]
 
 # Open csv file for writing the results
 cislo = 1
 while True:
-    filename = config.workspace + "2_pocet_povodi%s.csv" % cislo
+    filename = config.workspace + "navic_dibA02_delka%s.csv" % cislo
     if not os.path.isfile(filename):
         break
     cislo = cislo +1
 
 with open(filename, "wb") as vysledky_file:
-    csv_writer = csv.writer(vysledky_file)
+    csv_writer = csv.writer(vysledky_file, delimiter=",")
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
-    #where = "stav_hypsometrie = 'hypso'"
-    where = "Id = 19498"
-    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
+    #where = "stav_predvyber = 'nevypocteno'"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"])#, "stav_predvyber"], where)
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -52,21 +53,16 @@ with open(filename, "wb") as vysledky_file:
         print "\n ID: {0}".format(ID)
 
         # Volam funkci linarni interpolace
-        result = povodi.tvorba_povodi(ID, shape, config.workspace, config.vstupni_data) #FCDataset_VybranyVodniTok)
-
-        print "Vysledek = {0}".format(result)
+        result_predvyber = predvyber.navic(ID, shape, config.workspace, config.vstupni_data) #FCDataset_VybranyVodniTok)
+        print result_predvyber
 
         # zapis vysledek do csv souboru
-        csv_writer.writerow(result)
+        csv_writer.writerow(result_predvyber)
         vysledky_file.flush()
 
         # update stav
-        #ctverec[2] = "povodi"
-        #ctverce_cursor.updateRow(ctverec)
-
-        tp = time.time()
-        TimeTakenSecs = str(tp - t1)
-        print ("cas: " + TimeTakenSecs)
+        # ctverec[2] = "vypocteno"
+        # ctverce_cursor.updateRow(ctverec)
 
     del ctverce_cursor
 
@@ -77,6 +73,6 @@ t2 = time.time()
 TimeTakenSecs = str(t2 - t1)
 print ("cas vypoctu: " + TimeTakenSecs + "sekund")
 
-print "Konec 2_pocet_povodi.py"
+print "Konec 0_predvyber_zaklad.py"
 
 sys.exit(777)

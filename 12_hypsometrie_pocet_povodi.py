@@ -116,12 +116,18 @@ with open(filenameKriteria, "wb") as vysledky_fileKriteria:
                         try:
                             # Volam funkci linarni interpolace
                             vysledek_hypso = hypsometrie.linearni_interpolace(ID, shape, config.workspace, config.vstupni_data, FCDataset_VybranyVodniTok)
+                            print "ok"
+                            print vysledek_hypso
 
                             # Volam funkci na pocet povodi
                             vysledek_povodi = povodi.tvorba_povodi(ID, shape, config.workspace, config.vstupni_data)
+                            print "ok"
+                            print vysledek_povodi
 
                             # Volam funkci na vypocet dalsich charakteristik
                             vysledek_kriteria = predvyber.zakladni_kriteria(ID, shape, config.workspace, config.vstupni_data)
+                            print "ok"
+                            print vysledek_kriteria
 
                             # Pridani vysledku do CSV souboru, ulozeni
                             csv_writer5.writerow(vysledek_hypso[0])
@@ -140,8 +146,13 @@ with open(filenameKriteria, "wb") as vysledky_fileKriteria:
                             vysledky_fileKriteria.flush()
 
                             # update stav
-                            ctverec[2] = "1"
+                            ctverec[2] = "vypocteno"
                             ctverce_cursor.updateRow(ctverec)
+
+                            # Cas vypoctu
+                            tp = time.time()
+                            TimeTakenSecs = str(tp - t1)
+                            print ("Cas:" + TimeTakenSecs + "s")
 
                         except:
                             "Nelze vypocitat."
