@@ -27,9 +27,10 @@ sr = arcpy.SpatialReference(32633)
 
 # Databaze GDB s vodnim tokem
 FCDataset_VybranyVodniTok = os.path.join(config.vodni_toky, "VodniToky.gdb", "VybranyVodniTok")
+FCDataset_VybranyVodniTok = os.path.join(config.vodni_toky, "VodniToky.gdb", "VybranyVodniTok")
 
 # Feature Class pro ukladani vysledku hypsometrie - dodelat gdb
-# FCDataset_HypsoVrstevnice = os.path.join("Hypsometrie", "Vrstevnice")
+FCDataset_HypsoVrstevnice = os.path.join("Stavajici_mapy.gdb", "Vrstevnice")
 
 fieldnames5 = ["ID", "ziv5_celkem", "ziv5_1", "ziv5_2", "ziv5_3","ziv5_4","ziv5_5", "ziv5_6", "ziv5_7", "ziv5_8",
                "ziv5_9", "ziv5_10", "ziv5_11", "ziv5_12", "ziv5_13", "ziv5_14", "ziv5_15", "ziv5_16"]
@@ -63,8 +64,9 @@ while True:
     cislo20 = cislo20 +1
 
 # Vypocet pro vsechna uzemi
-where = "stav_hypsometrie= 'nevypocteno'"
-ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
+where = "HypsoPovodi = 1"
+#ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
+ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"], where)
 
 with open(filename5, "wb") as vysledky_file5:
     csv_writer5 = csv.writer(vysledky_file5, delimiter=",")
@@ -86,7 +88,7 @@ with open(filename5, "wb") as vysledky_file5:
                 try:
                     # Volam funkci linarni interpolace
                     result_linearni_interpolace = hypsometrie.linearni_interpolace(ID, shape, config.workspace,
-                                                                                       config.vstupni_data, FCDataset_VybranyVodniTok) #, FCDataset_HypsoVrstevnice)
+                                                                                       config.vstupni_data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice)
 
                     # Pridani vysledku do CSV souboru, ulozeni
                     csv_writer5.writerow(result_linearni_interpolace[0])
@@ -99,8 +101,8 @@ with open(filename5, "wb") as vysledky_file5:
                     vysledky_file20.flush()
 
                     # update stav
-                    ctverec[2] = "hypso"
-                    ctverce_cursor.updateRow(ctverec)
+                    #ctverec[2] = "vypocteno"
+                    #ctverce_cursor.updateRow(ctverec)
 
                 except:
                     "Nelze vypocitat."

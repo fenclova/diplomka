@@ -20,77 +20,6 @@ import arcpy, os, config
 arcpy.CheckOutExtension("Spatial")
 arcpy.env.overwriteOutput = True
 
-# funkce navíc
-def navic(ID, shape, workspace, data):
-    ID = ID
-
-    # Vodni toky pro CTVEREC
-    dibA02_clip = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), shape, "A02_clip.shp", "")
-
-    # Delka vodnich toku DIBAVOD
-    arcpy.AddGeometryAttributes_management(dibA02_clip, "LENGTH", "METERS")
-    g = arcpy.Geometry()
-    geometryList = arcpy.CopyFeatures_management(dibA02_clip, g)
-    dibA02_delka = 0
-    for geometry in geometryList:
-        dibA02_delka += geometry.length
-
-    ############################
-
-    # vyber vodnich toku dibavod
-
-    # Vodni plochy pro CTVEREC
-    vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), shape, "vodni_plocha_clip.shp", "")
-
-    # Vodni toky pro CTVEREC
-    vodni_toky_clip = arcpy.Clip_analysis((data + "dmu25_reka_potok"), shape, "vodni_toky_clip.shp", "")
-
-
-    arcpy.Buffer_analysis(vodni_toky_clip, "buffer_vodni_toky.shp", config.buffer_vodni_toky,
-                                              "FULL",
-                                              "ROUND", "ALL")
-    arcpy.Buffer_analysis(vodni_plocha_clip, "buffer_vodni_plochy.shp",
-                                                config.buffer_vodni_plochy, "FULL",
-                                                "ROUND", "ALL")
-
-    # Spoj obalove zony reky a vodni plochy
-    inMerge = "buffer_vodni_toky.shp;buffer_vodni_plochy.shp"
-    buffer_voda = arcpy.Merge_management(inMerge, "buffer_voda.shp", "")
-    buffer_voda_dissolve = arcpy.Dissolve_management(buffer_voda, "buffer_voda_dissolve.shp", "", "", "SINGLE_PART",
-                                                     "DISSOLVE_LINES")
-    # spojeny buffer orizni podle ctverce
-    # buffer_voda_dissolve_clip = arcpy.Clip_analysis(buffer_voda_dissolve, shape, "buffer.shp")
-
-
-    # DIBAVOD (A02 vodni toky jemne useky) pro zajmovou oblast (ctverec)
-    dibA02_vyber_clip = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), shape, "dibA02_vyber_clip.shp", "")
-
-    # VYBER a VYMAZ useky DIBAVOD, pokud linie nelezi uvnitr obalove zony
-    inFeatures = dibA02_vyber_clip
-    tempLayer = "dibA02_vyber_clip.lyr"
-    selectFeatures = buffer_voda_dissolve
-    arcpy.MakeFeatureLayer_management(inFeatures, tempLayer)
-    arcpy.SelectLayerByLocation_management(tempLayer, "WITHIN", selectFeatures, selection_type="NEW_SELECTION",
-                                           invert_spatial_relationship="INVERT")
-    arcpy.DeleteFeatures_management(tempLayer)
-
-
-    # Delka vodnich toku DIBAVOD po vybrání
-    arcpy.AddGeometryAttributes_management(dibA02_vyber_clip, "LENGTH", "METERS")
-    g = arcpy.Geometry()
-    geometryList = arcpy.CopyFeatures_management(dibA02_vyber_clip, g)
-    dibA02_vyber_delka = 0
-    for geometry in geometryList:
-        dibA02_vyber_delka += geometry.length
-
-
-    # VYSLEDKY
-    result_info = [ID,
-                   round(dibA02_delka, 2),
-                   round(dibA02_vyber_delka, 2)]
-
-    return result_info
-
 # Funkce vypocte zakladni kriteria predvyberu
 def zakladni_kriteria(ID, shape, workspace, data):
     sr = arcpy.SpatialReference(32633)  # EPSG kod pro spatial reference
@@ -131,6 +60,7 @@ def zakladni_kriteria(ID, shape, workspace, data):
 
     # Zastavba pro CTVEREC
     zastavba_clip = arcpy.Clip_analysis((data + "dmu25_zastavba"), shape, "zastavba_clip.shp", "")
+    zastavba_povrch_clip = arcpy.Clip_analysis((data + "dmu25_zastavba_povrch"), shape, "zastavba_povrch_clip.shp", "")
 
     # ...................VYPOCET HODNOT KRITERII............................
     # Delka zeleznice
@@ -229,6 +159,54 @@ def zakladni_kriteria(ID, shape, workspace, data):
     for geometry in geometryList:
         zastavba_rozloha += geometry.area
 
+    # Rozloha zastavby
+    arcpy.AddGeometryAttributes_management(zastavba_povrch_clip, "AREA")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(zastavba_povrch_clip, g)
+    zastavba_povrch_rozloha = 0
+    for geometry in geometryList:
+        zastavba_povrch_rozloha += geometry.area
+
+    # VODNI TOK DIBAVOD DELKA PRI VYPOCTU POVODI
+    # Vodni plochy pro CTVEREC
+    vodni_plocha_clip = arcpy.Clip_analysis((data + "dmu25_vodni_plochy"), shape, "vodni_plocha_clip.shp", "")
+
+    # Vodni toky pro CTVEREC
+    vodni_toky_clip = arcpy.Clip_analysis((data + "dmu25_reka_potok"), shape, "vodni_toky_clip.shp", "")
+
+    buffer_vodni_toky= arcpy.Buffer_analysis(vodni_toky_clip, "buffer_vodni_toky.shp", config.buffer_vodni_toky,
+                          "FULL",
+                          "ROUND", "ALL")
+    buffer_vodni_plochy = arcpy.Buffer_analysis(vodni_plocha_clip, "buffer_vodni_plochy.shp",
+                          config.buffer_vodni_plochy, "FULL",
+                          "ROUND", "ALL")
+
+    # Spoj obalove zony reky a vodni plochy
+    inMerge = "buffer_vodni_toky.shp;buffer_vodni_plochy.shp"
+    buffer_voda = arcpy.Merge_management(inMerge, "buffer_voda.shp", "")
+    buffer_voda_dissolve = arcpy.Dissolve_management(buffer_voda, "buffer_voda_dissolve.shp", "", "", "SINGLE_PART",
+                                                     "DISSOLVE_LINES")
+
+    # DIBAVOD (A02 vodni toky jemne useky) pro zajmovou oblast (ctverec)
+    dibA02_vyber_clip = arcpy.Clip_analysis((data + "dibavod_VodniTokyA02_rady"), shape, "dibA02_vyber_clip.shp",
+                                            "")
+
+    # VYBER a VYMAZ useky DIBAVOD, pokud linie nelezi uvnitr obalove zony
+    inFeatures = dibA02_vyber_clip
+    tempLayer = "dibA02_vyber_clip.lyr"
+    selectFeatures = buffer_voda_dissolve
+    arcpy.MakeFeatureLayer_management(inFeatures, tempLayer)
+    arcpy.SelectLayerByLocation_management(tempLayer, "WITHIN", selectFeatures, selection_type="NEW_SELECTION",
+                                           invert_spatial_relationship="INVERT")
+    arcpy.DeleteFeatures_management(tempLayer)
+
+    # Delka vodnich toku DIBAVOD po vybrání
+    arcpy.AddGeometryAttributes_management(dibA02_vyber_clip, "LENGTH", "METERS")
+    g = arcpy.Geometry()
+    geometryList = arcpy.CopyFeatures_management(dibA02_vyber_clip, g)
+    dibA02_vyber_delka = 0
+    for geometry in geometryList:
+        dibA02_vyber_delka += geometry.length
 
     # VYSLEDKY
     result_info = [ID,
@@ -242,8 +220,10 @@ def zakladni_kriteria(ID, shape, workspace, data):
                    round(vodni_plohy_rozloha, 2),
                    round(vodni_nadrz_rozloha, 2),
                    round(dibA02_delka, 2),
+                   round(dibA02_vyber_delka, 2),
                    round(relief_rozloha, 2),
-                   round(zastavba_rozloha, 2)]
+                   round(zastavba_rozloha, 2),
+                   round(zastavba_povrch_rozloha, 2)]
 
     # ....................................................................................................
     # UKLID
@@ -257,8 +237,14 @@ def zakladni_kriteria(ID, shape, workspace, data):
     arcpy.Delete_management(vodni_plocha_clip)
     arcpy.Delete_management(vodni_nadrz_clip)
     arcpy.Delete_management(dibA02_clip)
+    arcpy.Delete_management(buffer_vodni_toky)
+    arcpy.Delete_management(buffer_vodni_plochy)
+    arcpy.Delete_management(buffer_voda)
+    arcpy.Delete_management(buffer_voda_dissolve)
+    arcpy.Delete_management(dibA02_vyber_clip)
     arcpy.Delete_management(relief_clip)
     arcpy.Delete_management(zastavba_clip)
+    arcpy.Delete_management(zastavba_povrch_clip)
 
     return result_info
 
@@ -584,7 +570,6 @@ def vyber_vodni_tok(ID, shape, workspace, data, FCDataset_VybranyVodniTok):
     arcpy.Delete_management(mrizka_linie)
     arcpy.Delete_management(mrizka_uhlopricky)
     arcpy.Delete_management(uhlopricky)
-    arcpy.Delete_management(vrstevnice_clip)
     arcpy.Delete_management(vodni_plocha_clip)
     arcpy.Delete_management(vodni_toky_clip)
 

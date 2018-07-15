@@ -29,6 +29,8 @@ sr = arcpy.SpatialReference(32633)
 
 fieldnames = ["ID",
                 "zeleznice_delka",
+                "silnice_delka",
+                "dalnice_delka",
                 "vrstevnice_delka",
                 "rozvodniceIII_delka",
                 "rozvodniceII_delka",
@@ -36,9 +38,10 @@ fieldnames = ["ID",
                 "vodni_plohy_rozloha",
                 "vodni_nadrz_rozloha",
                 "dibA02_delka",
+                "dibA02_vyber_delka",
                 "relief_rozloha",
-                "zastavba_rozloha"]
-
+                "zastavba_rozloha",
+                "zastavba_povrch_rozloha"]
 
 # Open csv file for writing the results
 cislo = 1
@@ -49,12 +52,13 @@ while True:
     cislo = cislo +1
 
 with open(filename, "wb") as vysledky_file:
-    csv_writer = csv.writer(vysledky_file, delimiter=";")
+    csv_writer = csv.writer(vysledky_file, delimiter=",")
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
-    where = "stav_predvyber = 'nevypocteno'"
-    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_predvyber"], where)
+    #where = "stav_predvyber = 'nevypocteno'"
+    where = "Id = 208"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"], where) #, "stav_predvyber"], where)
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -70,8 +74,8 @@ with open(filename, "wb") as vysledky_file:
         vysledky_file.flush()
 
         # update stav
-        ctverec[2] = "vypocteno"
-        ctverce_cursor.updateRow(ctverec)
+        #ctverec[2] = "vypocteno"
+        #ctverce_cursor.updateRow(ctverec)
 
     del ctverce_cursor
 

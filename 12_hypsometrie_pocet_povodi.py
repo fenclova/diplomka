@@ -47,6 +47,36 @@ fieldnamesPovodi = ["ID", "pocet_povodi", "pocet_povodi_vse", "rozvodnice_delka"
 fieldnamesKriteria = ["ID", "zeleznice_delka", "silnice_delka", "dalnice_delka", "vrstevnice_delka", "rozvodniceIII_delka", "rozvodniceII_delka", "rozvodniceI_delka",
                 "vodni_plohy_rozloha", "vodni_nadrz_rozloha", "dibA02_delka", "relief_rozloha", "zastavba_rozloha"]
 
+#### VODNI TOK ######
+# Databaze GDB pro ukladani vystupu pro hodnoceni
+if not arcpy.Exists("VodniToky.gdb"):
+    outDatabase = str(arcpy.CreateFileGDB_management(out_folder_path= config.workspace, out_name="VodniToky", out_version="CURRENT"))
+else:
+    outDatabase = "VodniToky.gdb"
+
+if not arcpy.Exists(os.path.join(outDatabase, "VybranyVodniTok")):
+    FCDataset_VybranyVodniTok = str(arcpy.CreateFeatureDataset_management(outDatabase, "VybranyVodniTok", sr))
+else:
+    FCDataset_VybranyVodniTok = os.path.join(outDatabase, "VybranyVodniTok")
+
+# outDatabase = "VodniTok_5170.gdb"
+# FCDataset_VybranyVodniTok = os.path.join(outDatabase, "VybranyVodniTok")
+
+fieldnames = ["ID",
+                "find_path_problem",
+                "end_start_kombinace",
+                "nejlepsi_podil_ploch",
+                "pocet_pruseciku"]
+
+# Open csv file for writing the results
+cislo = 1
+while True:
+    filename = config.workspace + "0_predvyber_vodni_tok_%s.csv" % cislo
+    if not os.path.isfile(filename):
+        break
+    cislo = cislo +1
+
+
 # Open csv file for writing the results
 cislo5 = 1
 while True:
@@ -84,9 +114,9 @@ while True:
     cislo = cislo +1
 
 # Vypocet pro vsechna uzemi
-where = "stav_hypsometrie = 'nevypocteno'"
+where = "Stav = 0"
 
-ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
+ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "Stav"], where)
 
 with open(filenameKriteria, "wb") as vysledky_fileKriteria:
     csv_writerKriteria = csv.writer(vysledky_fileKriteria)
@@ -108,58 +138,75 @@ with open(filenameKriteria, "wb") as vysledky_fileKriteria:
                     csv_writer20 = csv.writer(vysledky_file20)
                     csv_writer20.writerow(fieldnames20)
 
-                    for ctverec in ctverce_cursor:
-                        ID = ctverec[0]
-                        shape = ctverec[1]
-                        print "\n ID: {0}".format(ID)
+                    with open(filename, "wb") as vysledky_file:
+                        csv_writer = csv.writer(vysledky_file)
+                        csv_writer.writerow(fieldnames)
 
-                        try:
-                            # Volam funkci linarni interpolace
-                            vysledek_hypso = hypsometrie.linearni_interpolace(ID, shape, config.workspace, config.vstupni_data, FCDataset_VybranyVodniTok)
-                            print "ok"
-                            print vysledek_hypso
+                        for ctverec in ctverce_cursor:
+                            ID = ctverec[0]
+                            shape = ctverec[1]
+                            print "\n ID: {0}".format(ID)
 
-                            # Volam funkci na pocet povodi
-                            vysledek_povodi = povodi.tvorba_povodi(ID, shape, config.workspace, config.vstupni_data)
-                            print "ok"
-                            print vysledek_povodi
+                            try:
+                                # hledam vodni tok
+                                result_predvyber = predvyber.vyber_vodni_tok(ID, shape, config.workspace,
+                                                                                 config.vstupni_data,
+                                                                                 FCDataset_VybranyVodniTok)
+                                print result_predvyber
 
-                            # Volam funkci na vypocet dalsich charakteristik
-                            vysledek_kriteria = predvyber.zakladni_kriteria(ID, shape, config.workspace, config.vstupni_data)
-                            print "ok"
-                            print vysledek_kriteria
+                                # Volam funkci linarni interpolace
+                                vysledek_hypso = hypsometrie.linearni_interpolace(ID, shape, config.workspace,
+                                                                                  config.vstupni_data,
+                                                                                  FCDataset_VybranyVodniTok)
+                                print "ok"
+                                print vysledek_hypso
 
-                            # Pridani vysledku do CSV souboru, ulozeni
-                            csv_writer5.writerow(vysledek_hypso[0])
-                            vysledky_file5.flush()
+                                # Volam funkci na pocet povodi
+                                vysledek_povodi = povodi.tvorba_povodi(ID, shape, config.workspace, config.vstupni_data)
+                                print "ok"
+                                print vysledek_povodi
 
-                            csv_writer10.writerow(vysledek_hypso[1])
-                            vysledky_file10.flush()
+                                # Volam funkci na vypocet dalsich charakteristik
+                                vysledek_kriteria = predvyber.zakladni_kriteria(ID, shape, config.workspace,
+                                                                                config.vstupni_data)
+                                print "ok"
+                                print vysledek_kriteria
 
-                            csv_writer20.writerow(vysledek_hypso[2])
-                            vysledky_file20.flush()
+                                # Pridani vysledku do CSV souboru, ulozeni
+                                csv_writer.writerow(result_predvyber)
+                                vysledky_file.flush()
 
-                            csv_writerPovodi.writerow(vysledek_povodi)
-                            vysledky_filePovodi.flush()
+                                csv_writer5.writerow(vysledek_hypso[0])
+                                vysledky_file5.flush()
 
-                            csv_writerKriteria.writerow(vysledek_kriteria)
-                            vysledky_fileKriteria.flush()
+                                csv_writer10.writerow(vysledek_hypso[1])
+                                vysledky_file10.flush()
 
-                            # update stav
-                            ctverec[2] = "vypocteno"
-                            ctverce_cursor.updateRow(ctverec)
+                                csv_writer20.writerow(vysledek_hypso[2])
+                                vysledky_file20.flush()
 
-                            # Cas vypoctu
-                            tp = time.time()
-                            TimeTakenSecs = str(tp - t1)
-                            print ("Cas:" + TimeTakenSecs + "s")
+                                csv_writerPovodi.writerow(vysledek_povodi)
+                                vysledky_filePovodi.flush()
 
-                        except:
-                            "Nelze vypocitat."
+                                csv_writerKriteria.writerow(vysledek_kriteria)
+                                vysledky_fileKriteria.flush()
+
+                                # update stav
+                                ctverec[2] = "1"
+                                ctverce_cursor.updateRow(ctverec)
+
+                                # Cas vypoctu
+                                tp = time.time()
+                                TimeTakenSecs = str(tp - t1)
+                                print ("Cas:" + TimeTakenSecs + "s")
+
+                            except:
+                                "Nelze vypocitat."
 
 
-                    del ctverce_cursor
+                        del ctverce_cursor
 
+                    vysledky_file.close()
                 vysledky_file20.close()
             vysledky_file10.close()
         vysledky_file5.close()

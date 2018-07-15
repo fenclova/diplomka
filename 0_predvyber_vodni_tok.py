@@ -27,10 +27,10 @@ arcpy.env.overwriteOutput = True
 sr = arcpy.SpatialReference(32633)
 
 # Databaze GDB pro ukladani vystupu pro hodnoceni
-if not arcpy.Exists("VodniTok_4.gdb"):
-    outDatabase = str(arcpy.CreateFileGDB_management(out_folder_path= config.workspace, out_name="VodniTok_4", out_version="CURRENT"))
+if not arcpy.Exists("VodniToky.gdb"):
+    outDatabase = str(arcpy.CreateFileGDB_management(out_folder_path= config.workspace, out_name="VodniToky", out_version="CURRENT"))
 else:
-    outDatabase = "VodniTok_4.gdb"
+    outDatabase = "VodniToky.gdb"
 
 if not arcpy.Exists(os.path.join(outDatabase, "VybranyVodniTok")):
     FCDataset_VybranyVodniTok = str(arcpy.CreateFeatureDataset_management(outDatabase, "VybranyVodniTok", sr))
@@ -59,8 +59,11 @@ with open(filename, "wb") as vysledky_file:
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
-    where = "stav_vyber_reky = 'nevypocteno'"
-    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_vyber_reky"], where)
+    #where = "stav_vyber_reky = 'nevypocteno'"
+    #ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_vyber_reky"], where)
+
+    where = "Id = 208"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"], where)
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -76,8 +79,8 @@ with open(filename, "wb") as vysledky_file:
         vysledky_file.flush()
 
         # update stav
-        ctverec[2] = "vypocteno"
-        ctverce_cursor.updateRow(ctverec)
+        #ctverec[2] = "vypocteno"
+        #ctverce_cursor.updateRow(ctverec)
 
     del ctverce_cursor
 

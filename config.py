@@ -8,15 +8,16 @@ import os
 # path of this file
 path_config = os.path.dirname(os.path.abspath(__file__))
 
-# Databaze k ukladani vysledku
-databaze = r"C:\fenclova\diplomka\analyza\DP_databaze.sqlite"
-
 # set the paths
 workspace = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
-ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet_big_1991') # fishnet_big_4472, fishnet = 875 ctvercu (prvni selekce) # fishnet_3ctverce # fishnet_big = 34 tisic
+# stavajici mapy - od Lysaka 253 ctvercu
+ctverce = os.path.join(r'C:\fenclova\diplomka\vystupy\kartografie_250zadani.gdb\zadani250nej_lokace')
+ctverce = r'C:\fenclova\diplomka\analyza\vysledky\vysledek_SHP\250nej.shp'
+#ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet_big_1991') # fishnet_big_4472, fishnet = 875 ctvercu (prvni selekce) # fishnet_3ctverce # fishnet_big = 34 tisic
 vstupni_data = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\\')
-#vodni_toky = os.path.join(os.path.dirname(path_config), r'vysledky\vodni_toky\\')
-vodni_toky = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
+#vodni_toky = os.path.join(os.path.dirname(path_config), r'vysledky\\')
+#vodni_toky = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
+vysledky = os.path.join(r"C:\fenclova\diplomka\vystupy\kartografie_250zadani.gdb\\")
 
 # --------------------- fce_linearni_interpolace.py -----------------------------------
 
@@ -24,7 +25,7 @@ vodni_toky = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
 dmt_resolution = 5
 
 # Uzemi okolo ctverce (orez dat, tvorba dmt)
-buffer_ctverec_vzdalenost = "500 meters"
+buffer_ctverec_vzdalenost = "500 Meters"
 
 # Vzdalenost od centroidu, kdy ma prioritu prusecik s rekou
 centroid_tolerance = "125 Meters"   # 125 m ve skutecnosti = 0,5 cm v mape
@@ -44,3 +45,8 @@ tolerance_FeatureToPolygon = "0.5 meters"
 # --------------------- fce_povodi.py -----------------------------------
 # Obalova zona okolo uzemi, ze ktere vybiram vodni toky pro analyzu povodi
 buffer_povodi = "1000 meters"
+
+# ----------------- tvroba a export jednotlivych zadani ------------------
+data_pro_mxd = r"C:\fenclova\diplomka\vystupy\export_zadani\data_pro_mxd\\"
+dilci_mxd = r"C:\fenclova\diplomka\vystupy\export_zadani\dilci_mxd\\"
+pdf_zadani = r"C:\fenclova\diplomka\vystupy\export_zadani\pdf_zadani\\"

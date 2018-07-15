@@ -29,6 +29,10 @@ arcpy.env.scratchWorkspace = "in_memory"
 # atributy pro zapis vysledku do csv souboru
 fieldnames = ["ID", "pocet_povodi", "pocet_povodi_vse", "rozvodnice_delka", "reky_delka"]
 
+# Feature Class pro ukladani vysledku hypsometrie - dodelat gdb
+FCDataset_Povodi = os.path.join(config.vysledky, "Povodi")
+
+
 # Open csv file for writing the results
 cislo = 1
 while True:
@@ -43,8 +47,9 @@ with open(filename, "wb") as vysledky_file:
 
     # Vypocet pro vsechna uzemi
     #where = "stav_hypsometrie = 'hypso'"
-    where = "Id = 19498"
-    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
+    #ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_hypsometrie"], where)
+    where = "poradi = 1"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "poradi"], where)
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -52,7 +57,7 @@ with open(filename, "wb") as vysledky_file:
         print "\n ID: {0}".format(ID)
 
         # Volam funkci linarni interpolace
-        result = povodi.tvorba_povodi(ID, shape, config.workspace, config.vstupni_data) #FCDataset_VybranyVodniTok)
+        result = povodi.tvorba_povodi(ID, shape, config.workspace, config.vstupni_data, FCDataset_Povodi) #FCDataset_VybranyVodniTok)
 
         print "Vysledek = {0}".format(result)
 

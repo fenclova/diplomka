@@ -41,8 +41,10 @@ with open(filename, "wb") as vysledky_file:
     csv_writer.writerow(fieldnames)
 
     # Vypocet pro vsechna uzemi
-    where = "stav_radovost = 'nevypocteno'"
-    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_radovost"], where)
+    #where = "stav_radovost = 'nevypocteno'"
+    #where = "Id = 208"
+    ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@"] )
+    #ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["Id", "SHAPE@", "stav_radovost"], where)
 
     for ctverec in ctverce_cursor:
         ID = ctverec[0]
@@ -60,8 +62,8 @@ with open(filename, "wb") as vysledky_file:
         vysledky_file.flush()
 
         # update stav
-        ctverec[2] = "vypocteno"
-        ctverce_cursor.updateRow(ctverec)
+        #ctverec[2] = "vypocteno"
+        #ctverce_cursor.updateRow(ctverec)
 
     del ctverce_cursor
 
