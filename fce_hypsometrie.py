@@ -3,12 +3,12 @@
 # Autor:            Karolina Fenclova
 # Popis:            Skript na vypocet linearni interpolace u mapy hypsometrie. vystupem pocet vrstevnic v dilcich ctvercich
 
-# VSTUP: fce_linearni_interpolace(ctverec, ID, workspace, data, povodi)
+# VSTUP: fce_linearni_interpolace(ID, ctverec, workspace, data, vodni_tok)
 #     ctverec = uzemi 4x4 km
 #     ID = ID ctverce
 #     workspace = adresar pro ukladani mezivysledku, ktere se budou mazat
-#     data = cesta k datum dmu25, vlastni vektorizaci atd.
-#     povodi = cesta k datum o vode
+#     data = cesta k datum dmu25
+#     vodni_tok = cesta k databazi halvni vodni tok
 
 # VYSTUP: result = [ZIV5, ZIV10, ZIV20]
 #    pro kazdy interval ZIV je zapsano: id, pocet_vrstevnic, vzniklych linearni interpolaci a 16krat pocet vrstevnic v dilcich ctvercich
@@ -384,6 +384,7 @@ def linearni_interpolace(ID, shape, workspace, data, FCDataset_VybranyVodniTok, 
     return result
 # ------------------------------------------------------
 
+# Funkce linearni interpolace, ktera uklada vysledne linie do databaze
 def ulozeni_vrstevnic(ID, poradi, shape, workspace, data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice, vhodny_ziv):
 
     sr = arcpy.SpatialReference(32633) # EPSG kod pro spatial reference
@@ -430,7 +431,7 @@ def ulozeni_vrstevnic(ID, poradi, shape, workspace, data, FCDataset_VybranyVodni
     cursor_start = arcpy.da.SearchCursor(start_vyska, "RASTERVALU")
     cursor_end = arcpy.da.SearchCursor(end_vyska, "RASTERVALU")
 
-    # Hodnoty vysek pro pocatecni a koncove body lini vodnich toku
+    # Hodnoty vysek pro pocatecni a koncove body linie vodnich toku
     start_value, end_value = [], []
 
     # Pro kazdy bod pridam hodnotu do pole vysek
@@ -465,7 +466,7 @@ def ulozeni_vrstevnic(ID, poradi, shape, workspace, data, FCDataset_VybranyVodni
     #....................................................................................................
     # HYDROLOGICKY SPRAVNY Digitalni model terenu
 
-    # vstup do DMT (vrstevnice, koty, vodni plochy, vodni toky spravneho smeru)
+    # vstup do DMR (vrstevnice, koty, vodni plochy, vodni toky spravneho smeru)
     inContours = "vrstevnice_clip.shp VYSKA Contour"
     inPointElevations = "kotovane_body_clip.shp VYSKA PointElevation"
     inLake = "vodni_plocha_clip.shp # Lake"

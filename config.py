@@ -11,8 +11,8 @@ path_config = os.path.dirname(os.path.abspath(__file__))
 # set the paths
 workspace = os.path.join(os.path.dirname(path_config), r'mezivysledky\\')
 # stavajici mapy - od Lysaka 253 ctvercu
-ctverce = os.path.join(r'C:\fenclova\diplomka\vystupy\kartografie_250zadani.gdb\zadani250nej_lokace')
-ctverce = r'C:\fenclova\diplomka\analyza\vysledky\vysledek_SHP\250nej.shp'
+ctverce = r'C:\fenclova\diplomka\vystupy\kartografie_250zadani.gdb\zadani250nej_lokace2'
+#ctverce = r'C:\fenclova\diplomka\analyza\vysledky\vysledek_SHP\250nej.shp'
 #ctverce = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\fishnet_big_1991') # fishnet_big_4472, fishnet = 875 ctvercu (prvni selekce) # fishnet_3ctverce # fishnet_big = 34 tisic
 vstupni_data = os.path.join(os.path.dirname(path_config), r'data\vstupni_data.gdb\\')
 #vodni_toky = os.path.join(os.path.dirname(path_config), r'vysledky\\')

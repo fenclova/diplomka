@@ -39,9 +39,9 @@ print "nacteny databaze pro ulozeni vysledku"
 
 
 # Vypocet pro vsechna uzemi
-where = "poradi = 5"
+where = "podklady = 'ne'"
 
-ctverce_cursor = arcpy.da.SearchCursor(config.ctverce, ["ID", "poradi", "SHAPE@", "vhodny_ziv", "podklady"], where)
+ctverce_cursor = arcpy.da.UpdateCursor(config.ctverce, ["ID_1", "poradi", "SHAPE@", "vhodny_ziv", "podklady"], where)
 print "vytvoren kursor"
 
 for ctverec in ctverce_cursor:
@@ -53,16 +53,16 @@ for ctverec in ctverce_cursor:
     print "\n poradi: {0}".format(poradi)
 
     # Volam funkci linarni interpolace
-    # vysledek_hypso = hypsometrie.ulozeni_vrstevnic(ID, poradi, shape, config.workspace,config.vstupni_data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice, vhodny_ziv)
-    # print "ok"
+    vysledek_hypso = hypsometrie.ulozeni_vrstevnic(ID, poradi, shape, config.workspace,config.vstupni_data, FCDataset_VybranyVodniTok, FCDataset_HypsoVrstevnice, vhodny_ziv)
+    print "ok"
 
     # Volam funkci na pocet povodi
     vysledek_povodi = povodi.ulozeni_povodi(poradi, shape, config.workspace, config.vstupni_data, FCDataset_Povodi)
     print "ok"
 
     # update stav
-    # ctverec[4] = "povodi"
-    # ctverce_cursor.updateRow(ctverec)
+    ctverec[4] = "ano"
+    ctverce_cursor.updateRow(ctverec)
 
     # Cas vypoctu
     tp = time.time()
